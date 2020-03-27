@@ -1,0 +1,27 @@
+{
+    "name": "ellermister/mushroom",
+    "description": "swoole php freame",
+    "type": "project",
+    "require": {
+        "php": "~7.2",
+        "ext-swoole":">=4.0",
+        "php-di/php-di": "^6.0"
+    },
+    "require-dev": {
+        "php": "^7.2",
+        "eaglewu/swoole-ide-helper": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mushroom\\":"src/",
+            "App\\": "app/"
+        }
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Eller",
+            "email": "ellermister@gmail.com"
+        }
+    ]
+}

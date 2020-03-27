@@ -1,0 +1,69 @@
+<!DOCTYPE HTML>
+<html>
+   <head>
+   <meta charset="utf-8">
+   <title>node</title>
+    
+      <script type="text/javascript">
+         function WebSocketTest()
+         {
+            if ("WebSocket" in window)
+            {
+               // 打开一个 web socket
+               var ws = new WebSocket("ws://192.168.32.135:9502/ip/node");
+                
+               ws.onopen = function()
+               {
+                  // Web Socket 已连接上，使用 send() 方法发送数据
+               };
+                
+               ws.onmessage = function (evt) 
+               { 
+                  var received_msg = evt.data;
+				  if(received_msg == "auth:"){
+					ws.send("node");
+				  }
+				  console.log(received_msg);
+               };
+                
+               ws.onclose = function(evt)
+               { 
+                  // 关闭 websocket
+				  var received_msg = evt.data;
+				  console.log(received_msg+"---------close--");
+               };
+			   
+            }
+            
+            else
+            {
+               // 浏览器不支持 WebSocket
+            }
+			
+			return ws;
+         }
+		 var count =0;
+		 var ws;
+		 while(count < 1)
+		 {
+			
+			setTimeout(function(){
+				ws = WebSocketTest()
+				setTimeout(function(){
+					ws.close();
+				},5000*100);
+			},1000);
+			count++;
+		 }
+		 
+      </script>
+        
+   </head>
+   <body>
+   
+      <div id="sse">
+         <a href="javascript:WebSocketTest()">运行 NODE</a>
+      </div>
+      
+   </body>
+</html>
