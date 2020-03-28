@@ -16,6 +16,7 @@ class HomeController
     public function indexPage(Request $request)
     {
         $header = json_encode($request->headers->all(), JSON_PRETTY_PRINT);
-        return view('index',['api_host' =>  $request->getSchemeAndHttpHost(),'header' => $header]);
+        $host = $request->getHttpHost();
+        return view('index',['api_host' =>  $request->getSchemeAndHttpHost(),'header' => $header,'host' => $host]);
     }
 }

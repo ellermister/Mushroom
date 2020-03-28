@@ -26,26 +26,31 @@ class IPNodeController
 
     public function onOpen(Request $request,Server $server)
     {
-        $gfw_client = $this->app->getTable('gfw_node');
-        $gfw_client->set($request->fd, ['fd' => $request->fd, 'auth' => 0]);
+        $gfw_node = $this->app->getTable('gfw_node');
+        $gfw_node->set($request->fd, ['fd' => $request->fd, 'auth' => 0]);
         $server->push($request->fd,'auth:',true);
     }
 
     public function onMessage(Request $request, Frame $frame,Server $server)
     {
-        $gfw_client = $this->app->getTable('gfw_node');
-        if(!($client = $gfw_client->get($frame->fd))){
+        $gfw_node = $this->app->getTable('gfw_node');
+        if(!($client = $gfw_node->get($frame->fd))){
             $server->push($frame->fd,'未获取到认证信息,或连接已关闭!');
             return $server->close($frame->fd);
         }
         if($client['auth'] == 0){
             if($frame->data == 'node'){
                 $client['auth'] = 1;
-                $gfw_client->set($frame->fd, $client);
-                return "auth success";
+                $gfw_node->set($frame->fd, $client);
+                $server->push($frame->fd, 'auth success');
+                return 'name:';
             }else{
                 $server->disconnect($frame->fd,1000,'auth fail');
             }
+        }elseif(empty($client['name'])){
+            $client['name'] = $frame->data;
+            $gfw_node->set($frame->fd, $client);
+            return "node name:".$frame->data;
         }else{
             list($ip,$state) = explode(',',$frame->data);
             $table = $this->app->getTable('gfw');
@@ -53,9 +58,10 @@ class IPNodeController
                 if($item['ip'] == $ip){
                     $item['china_status'] = $state;
                     $table->set($id, $item);
-                    echo "推荐给{$item['fd']} {$ip},检测结果:{$state}";
+                    echo "推送给{$item['fd']} {$ip},检测结果:{$state}";
                     if($server->exist($item['fd'])){
-                        $server->push($item['fd'], "{$ip},检测结果:{$state}");
+                        $nodeName = $client['name'];
+                        $server->push($item['fd'], "[{$nodeName}]{$ip},检测结果:{$state}");
                     }
                     $table->del($id);
                 }
@@ -67,8 +73,8 @@ class IPNodeController
 
     public function onClose(Request $request)
     {
-        $gfw_client = $this->app->getTable('gfw_node');
-        $gfw_client->del($request->fd);
+        $gfw_node = $this->app->getTable('gfw_node');
+        $gfw_node->del($request->fd);
     }
 
     /**
@@ -82,7 +88,7 @@ class IPNodeController
         $ipInt = ip2long($ip);
         if (count($table) == 0) {
             echo '初始化内存table' . PHP_EOL;
-            $apnic = app()->getBasePath() . '/storage/delegated-apnic-latest';
+            $apnic = app()->getBasePath() . '/storage/app/delegated-apnic-latest';
             $handle = fopen($apnic, "r");
             while (!feof($handle)) {
                 $line = fgets($handle);

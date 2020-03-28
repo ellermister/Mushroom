@@ -41,18 +41,24 @@ class IpController
             $server->push($frame->fd,'未获取到认证信息,或连接已关闭!');
             return $server->close($frame->fd);
         }
+
+        // 没有认证
         if($client['auth'] == 0){
             if($frame->data == 'client'){
-                $client['auth'] = 1;
+                $client['auth'] = 1; // 设置认证通过
                 $gfw_client->set($frame->fd, $client);
-                return "auth success";
+                return "auth success,目前在线".count($this->app->getTable('gfw_node')).'个节点';
             }else{
-                $server->disconnect($frame->fd,1000,'auth fail');
+                $server->disconnect($frame->fd,1000,'auth fail');// 认证失败，断开连接
             }
         }else{
-            $ip = $frame->data;
+            // 认证后交互内容
+            $ip = trim($frame->data);
             $table = $this->app->getTable('gfw');
-            $id = date('YmdHis'.count($table));
+            $id = date('YmdHi_').$frame->fd;
+            if($table->exist($id)){
+                return "当前连接已有任务，请稍后再添加。";
+            }
             $table->set($id, [
                 'ip'              => $ip,
                 'fd'              => $frame->fd,
@@ -101,7 +107,7 @@ class IpController
         $ipInt = ip2long($ip);
         if (count($table) == 0) {
             echo '初始化内存table' . PHP_EOL;
-            $apnic = app()->getBasePath() . '/storage/delegated-apnic-latest';
+            $apnic = app()->getBasePath() . '/storage/app/delegated-apnic-latest';
             $handle = fopen($apnic, "r");
             while (!feof($handle)) {
                 $line = fgets($handle);

@@ -51,7 +51,7 @@ class InboxController
         $ipInt = ip2long($ip);
         if(count($table) == 0){
             echo '初始化内存table'.PHP_EOL;
-            $apnic = app()->getBasePath() . '/storage/delegated-apnic-latest';
+            $apnic = app()->getBasePath() . '/storage/app/delegated-apnic-latest';
             $handle = fopen($apnic, "r");
             while (!feof($handle)) {
                 $line = fgets($handle);

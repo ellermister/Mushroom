@@ -24,6 +24,7 @@ return [
             'size'   => 102400,
             'column' => [
                 'fd'   => [\Swoole\Table::TYPE_INT, 64],
+                'name'   => [\Swoole\Table::TYPE_STRING, 64],
                 'auth' => [\Swoole\Table::TYPE_INT, 1],
             ]
         ],
