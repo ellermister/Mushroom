@@ -79,6 +79,7 @@ class Websocket
         });
 
         $server->on('message', function ($server, $frame) {
+            echo $frame->data;
             $connect = $server->connection_info($frame->fd);
             $sessionId = $connect['reactor_id'] . '_' . $frame->fd;
             $req = $this->fetchSession($sessionId);

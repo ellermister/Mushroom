@@ -54,7 +54,6 @@
     <samp id="ip_result">192.168.32.130,检测结果:1</samp>
 
 
-
     <div style="margin-bottom:200px">
     </div>
 </div>
@@ -65,6 +64,15 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"></script>
 <script type="text/javascript">
 
+    function ws_message(message, code, data) {
+        let format = {
+            'code': code,
+            'message': message,
+            'data': data
+        };
+        return JSON.stringify(format);
+    }
+
     function WebSocketConnect() {
         if ("WebSocket" in window) {
             var ws = new WebSocket("ws://<?php echo $host;?>/ip/add");
@@ -72,16 +80,25 @@
 
             };
             ws.onmessage = function (evt) {
-                var received_msg = evt.data;
-                if (received_msg == "auth:") {
-                    ws.send("client");
+                let received_msg = evt.data;
+                let message = JSON.parse(received_msg);
+                if (message.code == 401) {
+                    ws.send(ws_message('auth reply', 200, "client"));
                 }
-                $('#ip_result').append(received_msg+"<br>");
+                if (message.message == 'CHECK_RESULT') {
+                    let stateClass = message.data.state?'success':'danger';
+                    let stateText = message.data.state?'正常':'不通';
+                    let span = '<span class="label label-'+stateClass+'">'+stateText+'</span>';
+                    $('#ip_result').append("IP:" + message.data.ip + " STATE:" + span + "<br>");
+                } else {
+                    $('#ip_result').append(message.message + "<br>");
+                }
+
             };
             ws.onclose = function (evt) {
                 // 关闭 websocket
                 var received_msg = evt.data;
-                $('#ip_result').append(received_msg+"-- close -- <br>");
+                $('#ip_result').append(received_msg + "-- close -- <br>");
             };
 
         } else {
@@ -89,16 +106,17 @@
         }
         return ws;
     }
+
     var ws = null;
     $('#checkIP').click(function () {
-        if(ws == null){
+        if (ws == null) {
             ws = WebSocketConnect()
 
         }
         let ip = $('#ip_addr').val();
-        setTimeout(function(){
-            ws.send(ip);
-        },500);
+        setTimeout(function () {
+            ws.send(ws_message('check ip', 200, ip));
+        }, 500);
         return false;
     });
 </script>

@@ -28,31 +28,35 @@ class IPNodeController
     {
         $gfw_node = $this->app->getTable('gfw_node');
         $gfw_node->set($request->fd, ['fd' => $request->fd, 'auth' => 0]);
-        $server->push($request->fd,'auth:',true);
+        $server->push($request->fd,ws_message('auth:',401,'auth:'),true);
     }
 
     public function onMessage(Request $request, Frame $frame,Server $server)
     {
         $gfw_node = $this->app->getTable('gfw_node');
         if(!($client = $gfw_node->get($frame->fd))){
-            $server->push($frame->fd,'未获取到认证信息,或连接已关闭!');
+            $server->push($frame->fd,ws_message('未获取到认证信息,或连接已关闭!',403));
             return $server->close($frame->fd);
         }
+        $message = de_message($frame->data);
+        var_dump($message);
         if($client['auth'] == 0){
-            if($frame->data == 'node'){
+            if($message->data == 'node'){
                 $client['auth'] = 1;
                 $gfw_node->set($frame->fd, $client);
-                $server->push($frame->fd, 'auth success');
-                return 'name:';
+                $server->push($frame->fd, ws_message('auth success',200));
+                return ws_message('name:',401,'name:');
             }else{
-                $server->disconnect($frame->fd,1000,'auth fail');
+                $server->disconnect($frame->fd,1000,ws_message('auth fail',403));
             }
         }elseif(empty($client['name'])){
-            $client['name'] = $frame->data;
+            // 确认节点名称绑定成功，回显。
+            $client['name'] = $message->data;
             $gfw_node->set($frame->fd, $client);
-            return "node name:".$frame->data;
+            return ws_message("node name:".$message->data,200);
         }else{
-            list($ip,$state) = explode(',',$frame->data);
+            $ip = $message->data->ip;
+            $state = $message->data->state;
             $table = $this->app->getTable('gfw');
             foreach($table as $id => $item){
                 if($item['ip'] == $ip){
@@ -61,14 +65,14 @@ class IPNodeController
                     echo "推送给{$item['fd']} {$ip},检测结果:{$state}";
                     if($server->exist($item['fd'])){
                         $nodeName = $client['name'];
-                        $server->push($item['fd'], "[{$nodeName}]{$ip},检测结果:{$state}");
+                        $server->push($item['fd'], ws_message('CHECK_RESULT',200,['ip' => $ip,'state' => $state]));
                     }
                     $table->del($id);
                 }
             }
-            return "结果响应成功,内存表总数:".$table->count();
+            return ws_message("结果响应成功,内存表总数:".$table->count());
         }
-        return "无效操作";
+        return ws_message("无效操作",400);
     }
 
     public function onClose(Request $request)
