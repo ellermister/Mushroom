@@ -1,6 +1,7 @@
 <?php
 
 use Swoole\Coroutine\Http\Client;
+use Swoole\Timer;
 
 /**
  * 獲取當前系統OS
@@ -39,29 +40,80 @@ function icmp_ping($ip)
     return false;
 }
 
+/**
+ * decode message
+ * @param $text
+ * @return object
+ * @author ELLER
+ */
+function de_message($text)
+{
+    $message = json_decode($text);
+    if(!$message){
+        $message = (object)[];
+    }
+    if (!isset($message->code)) $message->code = null;
+    if (!isset($message->message)) $message->message = null;
+    if (!isset($message->data)) $message->data = null;
+    return $message;
+}
+
+/**
+ * Websocket Message
+ * @param $message
+ * @param $code
+ * @param null $data
+ * @return false|string
+ * @author ELLER
+ */
+function ws_message($message, $code = 200, $data = null)
+{
+    $format = [
+        'message' => $message,
+        'code'    => $code,
+        'data'    => $data
+    ];
+    return json_encode($format);
+}
 go(function(){
-    $cli = new Client('192.168.32.135', 9502);
-    $cli->set(['websocket_compression' => true]);
-    $cli->upgrade('/ip/node');
-    while($recv = $cli->recv()){
-        if($recv->data == 'auth:'){
-            $cli->push("node");
-        }else{
-            echo $recv->data.PHP_EOL;
-            Swoole\Timer::after(1, function() use ($recv,$cli) {
-                if(preg_match('/^\d+\.\d+\.\d+\.\d+$/is', $recv->data)){
-                    if(icmp_ping($recv->data)){
-                        $cli->push("{$recv->data},1");
-                        echo "{$recv->data},1".PHP_EOL;
+    while (true){
+        $cli = new Client('192.168.32.135', 9502);
+        $cli->set(['websocket_compression' => true]);
+        $cli->upgrade('/ip/node');
+        $timer = Swoole\Timer::tick(5000, function() use($cli){
+            $cli->push('ping',WEBSOCKET_OPCODE_PING);
+        });
+        while($recv = $cli->recv()){
+            if(intval($recv->opcode) == 10){
+                //pong
+                continue;
+            }
+            $message = de_message($recv->data);
+            if($message->data == 'auth:'){
+                $cli->push(ws_message('bind node',200,"node"));
+            }else if($message->data == 'name:'){
+                $cli->push(ws_message('bind area',200,"广东"));
+            }else{
+                echo $message->data.PHP_EOL;
+                Swoole\Timer::after(1, function() use ($message,$cli) {
+                    if(preg_match('/^\d+\.\d+\.\d+\.\d+$/is', $message->data)){
+                        if(icmp_ping($message->data)){
+                            $cli->push(ws_message("{$message->data},正常",200,['ip' => $message->data,'state' => 1]));
+                            echo "{$message->data},1".PHP_EOL;
+                        }else{
+                            $cli->push(ws_message("{$message->data},不通",200,['ip' => $message->data,'state' => 0]));
+                            echo "{$message->data},0".PHP_EOL;
+                        }
                     }else{
-                        $cli->push("{$recv->data},0");
-                        echo "{$recv->data},0".PHP_EOL;
                     }
-                }else{
-                }
-            });
+                });
+
+            }
 
         }
-
+        Swoole\Timer::clear($timer);
+        echo '网络连接中断'.PHP_EOL;
+        sleep(5);// 断线重连
+        echo '尝试重新连接'.PHP_EOL;
     }
 });
