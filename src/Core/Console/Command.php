@@ -2,17 +2,32 @@
 
 
 namespace Mushroom\Core\Console;
-
+use Swoole\Process;
 
 class Command
 {
     protected $args = [];
     protected $options = [];
+    protected $process = [];
 
 
     public function __construct()
     {
 
+    }
+
+    public function invoke(callable $fun)
+    {
+        $process = new Process($fun);
+        $this->process[] = $process;
+        return $process;
+    }
+
+    public function wait(callable $fun = null)
+    {
+        while ($ret = Process::wait(true)) {
+            $fun && $fun($ret);
+        }
     }
 
     public function setArgs($parameters)
