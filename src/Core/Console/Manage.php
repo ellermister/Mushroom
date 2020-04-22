@@ -95,7 +95,7 @@ class Manage
 
     protected function createTable()
     {
-        $memoryTable = app()->get('command.table');
+        $memoryTable = app()->getConfig('app.command.table');
         $tableList = [];
         foreach ($memoryTable as $tableName => $item) {
             $table = new \Swoole\Table($item['size']);
