@@ -5,7 +5,8 @@
     "require": {
         "php": "~7.2",
         "ext-swoole":">=4.0",
-        "php-di/php-di": "^6.0"
+        "php-di/php-di": "^6.0",
+        "longman/telegram-bot": "^0.54.0"
     },
     "require-dev": {
         "php": "^7.2",
