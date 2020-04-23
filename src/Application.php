@@ -4,6 +4,7 @@
 namespace Mushroom;
 
 
+use Mushroom\Core\Config;
 use Mushroom\Core\Container;
 use Mushroom\Core\Process;
 use Swoole\Table;
@@ -18,14 +19,12 @@ class Application extends Container
         parent::__construct($path);
         $this->basePath = $path;
         $this->set('app', $this);
-        $this->set(self::class , $this);
+        $this->set(self::class, $this);
         include __DIR__ . '/Support/helper.php';
 
         $rand = rand(1000, 9999);
         echo 'randid:' . $rand . PHP_EOL;;
         $this->set('app_id', $rand);
-//        $this->set('process', \DI\create(Process::class));
-//        $res = $this->make('process',['port' => 9503]);
         self::setInstance($this);;
     }
 
@@ -69,5 +68,22 @@ class Application extends Container
     {
         $list = $this->get('memory.table.list');
         return $list[$name] ?? null;
+    }
+
+    /**
+     * 获取配置操作类
+     *
+     * @return Config|null
+     */
+    public function getConfig($name = null, $default = null)
+    {
+        if ($name != null) {
+            $config = $this->get(Config::class);
+            if (!$config) {
+                return $default;
+            }
+            return $config->get($name, $default);
+        }
+        return $this->get(Config::class);
     }
 }

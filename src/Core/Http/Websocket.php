@@ -4,6 +4,7 @@
 namespace Mushroom\Core\Http;
 
 
+use Mushroom\Application;
 use Mushroom\Core\Route;
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
@@ -17,13 +18,12 @@ class Websocket
     protected $server;
     protected $app;
 
-    public function __construct(Route $route)
+    public function __construct(Route $route, Application $application)
     {
-        $this->host = app()->get('listen.host');
-        $this->port = app()->get('listen.port');
+        $this->app = $application;
+        $this->host = $this->app->getConfig('app.listen.host');
+        $this->port = $this->app->getConfig('app.listen.port');
         $this->route = $route;
-        $this->app = app();
-
     }
 
     /**
@@ -38,7 +38,7 @@ class Websocket
 
     protected function createTable()
     {
-        $memoryTable = $this->app->get('memory.table');
+        $memoryTable = $this->app->getConfig('app.memory.table');
         $tableList = [];
         foreach ($memoryTable as $tableName => $item) {
             $table = new \Swoole\Table($item['size']);
@@ -48,7 +48,7 @@ class Websocket
             $table->create();
             $tableList[$tableName] = $table;
         }
-        app()->set('memory.table.list', $tableList);
+        $this->app->set('memory.table.list', $tableList);
     }
 
 
@@ -121,9 +121,9 @@ class Websocket
 //            $this->storeSeesion($sessionId, $requestObject);
 
             $content = $this->route->handleWithHttp($requestObject->getPathInfo());
-            if($content instanceof Response){
+            if ($content instanceof Response) {
                 $content->terminate();
-            }else{
+            } else {
                 $responseObject->setContent($content);
                 $responseObject->terminate();
             }
@@ -134,7 +134,7 @@ class Websocket
         echo '监听地址：' . $this->host . PHP_EOL;
         echo '监听端口：' . $this->port . PHP_EOL;
         $this->server = $server;
-        app()->set(Server::class, $this->server);
+        $this->app->set(Server::class, $this->server);
         $this->server->start();
     }
 

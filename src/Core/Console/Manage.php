@@ -25,6 +25,7 @@ class Manage
         if (count($options) === 0) {
             $this->console->help();
         } else {
+            $this->createTable();
             $target = $options[0];
             $this->dispatch($options[0], $options);
         }
@@ -90,5 +91,20 @@ class Manage
             }
         }
         return false;
+    }
+
+    protected function createTable()
+    {
+        $memoryTable = app()->get('command.table');
+        $tableList = [];
+        foreach ($memoryTable as $tableName => $item) {
+            $table = new \Swoole\Table($item['size']);
+            foreach ($item['column'] as $name => $property) {
+                $table->column(trim($name), $property[0], $property[1]);
+            }
+            $table->create();
+            $tableList[$tableName] = $table;
+        }
+        app()->set('command.table.list', $tableList);
     }
 }
