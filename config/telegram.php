@@ -1,7 +1,7 @@
 <?php
 return [
-    'bot_api_key'  => '',
-    'bot_username' => '',
+    'bot_api_key'  => env('BOT_API_KEY'),
+    'bot_username' => env('BOT_USERNAME'),
 
     'block_keywords' => [
         'text' => [

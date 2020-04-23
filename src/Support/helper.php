@@ -75,11 +75,34 @@ function ws_message($message, $code = 200, $data = null)
 function de_message($text)
 {
     $message = json_decode($text);
-    if(!$message){
+    if (!$message) {
         $message = (object)[];
     }
     if (!isset($message->code)) $message->code = null;
     if (!isset($message->message)) $message->message = null;
     if (!isset($message->data)) $message->data = null;
     return $message;
+}
+
+/**
+ * 增加环境变量配置获取
+ *
+ * @param $name
+ * @param null $default
+ * @return |null
+ */
+function env($name, $default = null)
+{
+    static $envRaw = null;
+
+    $env = app()->getBasePath() . DIRECTORY_SEPARATOR . '.env';
+    if (is_file($env)) {
+        if ($envRaw == null) {
+            $envRaw = file_get_contents($env);
+        }
+        if (preg_match('/' . $name . '\s*\=\s*"?(\S+)"?/is', $envRaw, $matches)) {
+            return $matches[1] ?? $default;
+        }
+    }
+    return $default;
 }
