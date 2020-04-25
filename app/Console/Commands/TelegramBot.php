@@ -94,8 +94,6 @@ class TelegramBot extends Command
 
         $storagePath = $this->app->getBasePath() . '/storage/app';
 
-        echo $storagePath . DIRECTORY_SEPARATOR . 'block_text.txt'.PHP_EOL;
-
         if (is_file($storagePath . DIRECTORY_SEPARATOR . 'block_text.txt')) {
             if (filemtime($storagePath . DIRECTORY_SEPARATOR . 'block_text.txt') > $this->blockUpdateTime1) {
                 $raw = file_get_contents($storagePath . DIRECTORY_SEPARATOR . 'block_text.txt');
