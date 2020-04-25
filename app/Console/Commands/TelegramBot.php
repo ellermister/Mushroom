@@ -78,6 +78,18 @@ class TelegramBot extends Command
                         ];
 
                     } else {
+                        if(isset($item->message['document'])){
+                            $fileInfo = pathinfo($item->message['document']['file_name']);
+
+                            if(isset($fileInfo['extension'])){
+                                if(in_array($fileInfo['extension'], explode(',',$this->app->getConfig('telegram.block_file_ext','exe,bat,pif')))){
+                                    Request::deleteMessage([
+                                        'chat_id'    => $item->message['chat']['id'],
+                                        'message_id' => $item->message['message_id'],
+                                    ]);
+                                }
+                            }
+                        }
                         if(!empty($item->message['text'])){
                             echo '收到：' . $item->message['text'] . PHP_EOL;
                             $chat_id = $item->message['chat']['id'];
@@ -91,6 +103,12 @@ class TelegramBot extends Command
         }
     }
 
+    /**
+     * 黑名单消息处理
+     *
+     * @param $item
+     * @return bool
+     */
     protected function blockMessage($item)
     {
         $chat_id = $item->message['chat']['id'];
@@ -143,6 +161,12 @@ class TelegramBot extends Command
 
     }
 
+    /**
+     * 黑名单关键词
+     *
+     * @param $text
+     * @return bool
+     */
     protected function blockKeyword($text)
     {
         foreach ($this->blockKeyword['preg'] as $blockItem) {
