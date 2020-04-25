@@ -3,6 +3,8 @@ return [
     'bot_api_key'  => env('BOT_API_KEY'),
     'bot_username' => env('BOT_USERNAME'),
 
+    'block_name_length' => env('BLOCK_NAME_LENGTH', 12),
+
     'block_keywords' => [
         'text' => [
             '服务器出租',

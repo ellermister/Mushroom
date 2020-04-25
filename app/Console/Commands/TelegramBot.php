@@ -78,9 +78,11 @@ class TelegramBot extends Command
                         ];
 
                     } else {
-                        echo '收到：' . $item->message['text'] . PHP_EOL;
-                        $chat_id = $item->message['chat']['id'];
-                        $this->blockMessage($item);
+                        if(!empty($item->message['text'])){
+                            echo '收到：' . $item->message['text'] . PHP_EOL;
+                            $chat_id = $item->message['chat']['id'];
+                            $this->blockMessage($item);
+                        }
                     }
                 }
             } else {
@@ -111,25 +113,55 @@ class TelegramBot extends Command
                 $this->blockUpdateTime2 = time();
             }
         }
+        $member = Request::getChatMember([
+            'chat_id' => $chat_id,
+            'user_id' => $item->message['from']['id']
+        ]);
 
+        // 如果是管理员或者创建者则跳过
+        if(in_array($member->result->status,['administrator','creator'])){
+//            var_dump($member->result->user['first_name'].$member->result->user['last_name'].'='.$member->result->status);
+            return false;
+        }
+
+        // 检测内容
+        if($this->blockKeyword($item->message['text'])){
+            Request::deleteMessage([
+                'chat_id'    => $chat_id,
+                'message_id' => $item->message['message_id'],
+            ]);
+        }
+
+        // 检测名字
+        $name = $item->message['from']['first_name'] . $item->message['from']['last_name'];
+        if (mb_strlen($name) > $this->app->getConfig('telegram.block_name_length',12) || $this->blockKeyword($name)) {
+            Request::deleteMessage([
+                'chat_id'    => $chat_id,
+                'message_id' => $item->message['message_id'],
+            ]);
+        }
+
+    }
+
+    protected function blockKeyword($text)
+    {
         foreach ($this->blockKeyword['preg'] as $blockItem) {
-            if (preg_match('/' . $blockItem . '/is', $item->message['text'])) {
-                Request::deleteMessage([
-                    'chat_id'    => $chat_id,
-                    'message_id' => $item->message['message_id'],
-                ]);
+            if(empty($blockItem)){
                 continue;
+            }
+            if (preg_match('/' . $blockItem . '/is', $text)) {
+                return true;
             }
         }
         foreach ($this->blockKeyword['text'] as $keyword) {
-            if (strpos($item->message['text'], $keyword) !== false) {
-                Request::deleteMessage([
-                    'chat_id'    => $chat_id,
-                    'message_id' => $item->message['message_id'],
-                ]);
+            if(empty($keyword)){
                 continue;
             }
+            if (mb_strpos($text, $keyword) !== false) {
+                return true;
+            }
         }
+        return false;
     }
 
 }
