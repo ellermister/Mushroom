@@ -95,16 +95,16 @@ class Manage
 
     protected function createTable()
     {
-//        $memoryTable = app()->get('command.table');
-//        $tableList = [];
-//        foreach ($memoryTable as $tableName => $item) {
-//            $table = new \Swoole\Table($item['size']);
-//            foreach ($item['column'] as $name => $property) {
-//                $table->column(trim($name), $property[0], $property[1]);
-//            }
-//            $table->create();
-//            $tableList[$tableName] = $table;
-//        }
-//        app()->set('command.table.list', $tableList);
+        $memoryTable = app()->getConfig('app.command.table');
+        $tableList = [];
+        foreach ($memoryTable as $tableName => $item) {
+            $table = new \Swoole\Table($item['size']);
+            foreach ($item['column'] as $name => $property) {
+                $table->column(trim($name), $property[0], $property[1]);
+            }
+            $table->create();
+            $tableList[$tableName] = $table;
+        }
+        app()->set('command.table.list', $tableList);
     }
 }
