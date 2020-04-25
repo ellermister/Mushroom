@@ -31,8 +31,10 @@ class TelegramBot extends Command
 
     public function __construct()
     {
-        putenv('HTTP_PROXY=192.168.75.1:10809');
-        putenv('HTTPS_PROXY=192.168.75.1:10809');
+        if(env('HTTP_PROXY')){
+            putenv('HTTP_PROXY='.env('HTTP_PROXY'));
+            putenv('HTTPS_PROXY='.env('HTTP_PROXY'));
+        }
     }
 
     /**
@@ -97,14 +99,15 @@ class TelegramBot extends Command
         if (is_file($storagePath . DIRECTORY_SEPARATOR . 'block_text.txt')) {
             if (filemtime($storagePath . DIRECTORY_SEPARATOR . 'block_text.txt') > $this->blockUpdateTime1) {
                 $raw = file_get_contents($storagePath . DIRECTORY_SEPARATOR . 'block_text.txt');
-                $this->blockKeyword['text'] = array_merge($this->blockKeyword['text'], explode(PHP_EOL, $raw));
+                $this->blockKeyword['text'] = array_merge($this->blockKeyword['text'], explode(PHP_EOL, trim($raw)));
                 $this->blockUpdateTime1 = time();
             }
         }
+
         if (is_file($storagePath . DIRECTORY_SEPARATOR . 'block_preg.txt')) {
             if (filemtime($storagePath . DIRECTORY_SEPARATOR . 'block_preg.txt') > $this->blockUpdateTime2) {
                 $raw = file_get_contents($storagePath . DIRECTORY_SEPARATOR . 'block_preg.txt');
-                $this->blockKeyword['preg'] = array_merge($this->blockKeyword['preg'], explode(PHP_EOL, $raw));
+                $this->blockKeyword['preg'] = array_merge($this->blockKeyword['preg'], explode(PHP_EOL, trim($raw)));
                 $this->blockUpdateTime2 = time();
             }
         }
