@@ -31,9 +31,9 @@ class TelegramBot extends Command
 
     public function __construct()
     {
-        if(env('HTTP_PROXY')){
-            putenv('HTTP_PROXY='.env('HTTP_PROXY'));
-            putenv('HTTPS_PROXY='.env('HTTP_PROXY'));
+        if (env('HTTP_PROXY')) {
+            putenv('HTTP_PROXY=' . env('HTTP_PROXY'));
+            putenv('HTTPS_PROXY=' . env('HTTP_PROXY'));
         }
     }
 
@@ -78,11 +78,11 @@ class TelegramBot extends Command
                         ];
 
                     } else {
-                        if(isset($item->message['document'])){
+                        if (isset($item->message['document'])) {
                             $fileInfo = pathinfo($item->message['document']['file_name']);
 
-                            if(isset($fileInfo['extension'])){
-                                if(in_array($fileInfo['extension'], explode(',',$this->app->getConfig('telegram.block_file_ext','exe,bat,pif')))){
+                            if (isset($fileInfo['extension'])) {
+                                if (in_array($fileInfo['extension'], explode(',', $this->app->getConfig('telegram.block_file_ext', 'exe,bat,pif')))) {
                                     Request::deleteMessage([
                                         'chat_id'    => $item->message['chat']['id'],
                                         'message_id' => $item->message['message_id'],
@@ -90,7 +90,7 @@ class TelegramBot extends Command
                                 }
                             }
                         }
-                        if(!empty($item->message['text'])){
+                        if (!empty($item->message['text'])) {
                             echo '收到：' . $item->message['text'] . PHP_EOL;
                             $chat_id = $item->message['chat']['id'];
                             $this->blockMessage($item);
@@ -137,13 +137,13 @@ class TelegramBot extends Command
         ]);
 
         // 如果是管理员或者创建者则跳过
-        if(in_array($member->result->status,['administrator','creator'])){
+        if (in_array($member->result->status, ['administrator', 'creator'])) {
 //            var_dump($member->result->user['first_name'].$member->result->user['last_name'].'='.$member->result->status);
             return false;
         }
 
         // 检测内容
-        if($this->blockKeyword($item->message['text'])){
+        if ($this->blockKeyword($item->message['text'])) {
             Request::deleteMessage([
                 'chat_id'    => $chat_id,
                 'message_id' => $item->message['message_id'],
@@ -151,8 +151,8 @@ class TelegramBot extends Command
         }
 
         // 检测名字
-        $name = $item->message['from']['first_name'] . $item->message['from']['last_name'];
-        if (mb_strlen($name) > $this->app->getConfig('telegram.block_name_length',12) || $this->blockKeyword($name)) {
+        $name = $item->message['from']['first_name'] . ($item->message['from']['last_name'] ?? "");
+        if (mb_strlen($name) > $this->app->getConfig('telegram.block_name_length', 12) || $this->blockKeyword($name)) {
             Request::deleteMessage([
                 'chat_id'    => $chat_id,
                 'message_id' => $item->message['message_id'],
@@ -170,7 +170,7 @@ class TelegramBot extends Command
     protected function blockKeyword($text)
     {
         foreach ($this->blockKeyword['preg'] as $blockItem) {
-            if(empty($blockItem)){
+            if (empty($blockItem)) {
                 continue;
             }
             if (preg_match('/' . $blockItem . '/is', $text)) {
@@ -178,7 +178,7 @@ class TelegramBot extends Command
             }
         }
         foreach ($this->blockKeyword['text'] as $keyword) {
-            if(empty($keyword)){
+            if (empty($keyword)) {
                 continue;
             }
             if (mb_strpos($text, $keyword) !== false) {
