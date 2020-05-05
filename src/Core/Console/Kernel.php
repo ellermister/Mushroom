@@ -43,6 +43,7 @@ abstract Class Kernel
                     }
                     $commandInfo['description'] = $default['description'];
                     $commandInfo['signature'] = $default['signature'];
+                    $commandInfo['daemon'] = $default['daemon'] ?? false;
                     $this->commands[$signature] = $commandInfo;
                 }
             }

@@ -38,9 +38,17 @@ class Manage
             if (trim($signature) == trim($target)) {
                 $object = $this->application->make($command['class']);
                 $parameters = $this->parseArguments($command['signature'], $input);
+                $this->convertDaemon($command['daemon']);
                 $object->setArgs($parameters);
                 $this->application->call([$object, 'handle'], $parameters);
             }
+        }
+    }
+
+    protected function convertDaemon($is)
+    {
+        if($is){
+            \Swoole\Process::daemon();
         }
     }
 

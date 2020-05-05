@@ -24,6 +24,8 @@ class TelegramBot extends Command
     protected $blockUpdateTime1 = 0;
     protected $blockUpdateTime2 = 0;
 
+    protected $daemon = true;
+
     /**
      * @var Application
      */
@@ -66,6 +68,7 @@ class TelegramBot extends Command
             $messages = $telegram->handleGetUpdates();
             if (isset($messages->result) && is_array($messages->result)) {
                 foreach ($messages->result as $item) {
+                    var_dump($item);
                     if ($item->message['chat']['type'] == 'private') {
                         echo '收到：' . $item->message['text'] . PHP_EOL;
                         $chat_id = $item->message['chat']['id'];
@@ -94,6 +97,11 @@ class TelegramBot extends Command
                             echo '收到：' . $item->message['text'] . PHP_EOL;
                             $chat_id = $item->message['chat']['id'];
                             $this->blockMessage($item);
+                        }
+
+                        // 进群名字异常删除广告
+                        if(!empty($item->message['new_chat_members'])){
+                            $this->blockNewMemberJoinMessage($item->message);
                         }
                     }
                 }
@@ -186,6 +194,25 @@ class TelegramBot extends Command
             }
         }
         return false;
+    }
+
+    /**
+     * 新成员名字广告
+     */
+    protected function blockNewMemberJoinMessage($message)
+    {
+        $chat_id = $message['chat']['id'];
+        $chat_name = $message['chat']['first_name'] ?? "";
+        $members = $message['new_chat_members'];
+        foreach ($members as $newMember) {
+            $memberName = $newMember['first_name'] . $newMember['last_name'] ?? '';
+            if (mb_strlen($memberName) > $this->app->getConfig('telegram.block_name_length', 12) || $this->blockKeyword($memberName)) {
+                Request::deleteMessage([
+                    'chat_id'    => $chat_id,
+                    'message_id' => $message['message_id'],
+                ]);
+            }
+        }
     }
 
 }
