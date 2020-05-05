@@ -68,7 +68,6 @@ class TelegramBot extends Command
             $messages = $telegram->handleGetUpdates();
             if (isset($messages->result) && is_array($messages->result)) {
                 foreach ($messages->result as $item) {
-                    var_dump($item);
                     if ($item->message['chat']['type'] == 'private') {
                         echo '收到：' . $item->message['text'] . PHP_EOL;
                         $chat_id = $item->message['chat']['id'];
