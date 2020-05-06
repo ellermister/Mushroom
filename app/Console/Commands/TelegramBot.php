@@ -68,6 +68,7 @@ class TelegramBot extends Command
             $messages = $telegram->handleGetUpdates();
             if (isset($messages->result) && is_array($messages->result)) {
                 foreach ($messages->result as $item) {
+
                     if ($item->message['chat']['type'] == 'private') {
                         echo '收到：' . $item->message['text'] . PHP_EOL;
                         $chat_id = $item->message['chat']['id'];
@@ -99,8 +100,16 @@ class TelegramBot extends Command
                         }
 
                         // 进群名字异常删除广告
-                        if(!empty($item->message['new_chat_members'])){
+                        if (!empty($item->message['new_chat_members'])) {
                             $this->blockNewMemberJoinMessage($item->message);
+                        }
+
+                        if (isset($item->message['forward_from_chat'])) {
+                            $this->blockForwardChat($item->message);
+                        }
+
+                        if (isset($item->message['caption']) && isset($item->message['photo'])) {
+                            $this->blockPhotoCaption($item->message);
                         }
                     }
                 }
@@ -213,5 +222,44 @@ class TelegramBot extends Command
             }
         }
     }
+
+    /**
+     * 过滤转发规则
+     *
+     * @param $message
+     */
+    protected function blockForwardChat($message)
+    {
+        $chat_id = $message['chat']['id'];
+        // 被转发者的名字或者频道名套用名称黑名单规则
+        $title = $message['forward_from_chat']['title'];
+        if (mb_strlen($title) > $this->app->getConfig('telegram.block_name_length', 12) || $this->blockKeyword($title)) {
+            Request::deleteMessage([
+                'chat_id'    => $chat_id,
+                'message_id' => $message['message_id'],
+            ]);
+        }
+    }
+
+    /**
+     * 过滤图文内容
+     *
+     * @param $message
+     */
+    protected function blockPhotoCaption($message)
+    {
+        $chat_id = $message['chat']['id'];
+        if (isset($message['photo'])) {
+            // 暂无，预加二维码识别
+        }
+
+        if (isset($message['caption']) && $this->blockKeyword($message['caption'])) {
+            Request::deleteMessage([
+                'chat_id'    => $chat_id,
+                'message_id' => $message['message_id'],
+            ]);
+        }
+    }
+
 
 }
