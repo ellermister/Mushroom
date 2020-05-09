@@ -34,7 +34,7 @@ class IPNodeController
     public function onMessage(Request $request, Frame $frame,Server $server)
     {
 
-         = $this->app->getTable('gfw_node');
+        $gfw_node = $this->app->getTable('gfw_node');
         if(!($client = $gfw_node->get($frame->fd))){
             $server->push($frame->fd,ws_message('未获取到认证信息,或连接已关闭!',403));
             return $server->close($frame->fd);
