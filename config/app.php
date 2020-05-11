@@ -6,6 +6,8 @@ return [
         'port' => 9502,
     ],
 
+    'key' => env('APP_KEY'),
+
     'memory' => [
         'table' => [
             'apnic'      => [
@@ -33,6 +35,21 @@ return [
             ],
             'gfw_client' => [
                 'size'   => 102400,
+                'column' => [
+                    'fd'   => [\Swoole\Table::TYPE_INT, 64],
+                    'auth' => [\Swoole\Table::TYPE_INT, 1],
+                ]
+            ],
+            'users' => [
+                'size' => 102400,
+                'column' => [
+                    'fd'   => [\Swoole\Table::TYPE_INT, 64],
+                    'id'   => [\Swoole\Table::TYPE_INT, 64],
+                    'auth' => [\Swoole\Table::TYPE_INT, 1],
+                ]
+            ],
+            'group' => [
+                'size' => 102400,
                 'column' => [
                     'fd'   => [\Swoole\Table::TYPE_INT, 64],
                     'auth' => [\Swoole\Table::TYPE_INT, 1],

@@ -7,6 +7,7 @@ namespace Mushroom;
 use Mushroom\Core\Config;
 use Mushroom\Core\Container;
 use Mushroom\Core\Process;
+use Mushroom\Core\Redis;
 use Swoole\Table;
 
 class Application extends Container
