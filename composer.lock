@@ -68,6 +68,7 @@
                 "serialize",
                 "tokenizer"
             ],
+            "abandoned": "opis/closure",
             "time": "2018-03-21T22:21:57+00:00"
         },
         {
@@ -526,5 +527,6 @@
     },
     "platform-dev": {
         "php": "^7.2"
-    }
+    },
+    "plugin-api-version": "1.1.0"
 }

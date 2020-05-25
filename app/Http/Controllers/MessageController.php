@@ -95,7 +95,7 @@ class MessageController
 
 
                 return ws_message('AUTH_SUCCESS', 200, [
-                    'friend'  => $this->friendList(),
+                    'friend'  => $this->friendList($user['id']),
                     'user'    => $user,
                     'user_key'=> $token,
                     'message' => "auth success,目前在线" . count($userTable) . '个人'
@@ -121,10 +121,40 @@ class MessageController
                 }
             } else if ($message->message == 'group') {
                 if (is_array($messageData)) {
+                    $group = $this->getGroup($messageData['to']);
+                    if(isset($group['users']) && is_array($group['users'])){
+                        $user = $userTable->get($request->fd);
+                        $userProfile = $this->getUser($user['id']);
+
+                        $groupUserId = [];
+                        foreach($group['users'] as $_user){
+                            $groupUserId[] = $_user['id'];
+                        }
+                        $groupUserId = array_diff($groupUserId, [$user['id']]);
+                        $groupUserFd = $this->getOnlineUserFd($groupUserId);
+
+                        $sendMsgArr = ['from' => $userProfile, 'text' => $messageData['text'],'group' => $group];
+                        if(isset($messageData['img'])){
+                            $sendMsgArr['img'] = $messageData['img'];
+                        }
+                        foreach($groupUserFd as $_fd){
+                            $server->push($_fd,  ws_message('group', 200, $sendMsgArr));
+                        }
+                        return ws_message('SEND_OK', 200);
+                    }
                     // 发送群组消息
                 }
             } else if ($message->message == 'FRIEND_LIST') {
-                return ws_message('FRIEND_LIST', 200, $this->friendList());
+                $user = $userTable->get($request->fd);
+                return ws_message('FRIEND_LIST', 200, $this->friendList($user['user_id']));
+            } else if ($message->message == 'CREATE_GROUP'){
+                $user = $userTable->get($request->fd);
+                $userProfile = $this->getUser($user['id']);
+                if($groupId = $this->createGroup($messageData, $userProfile)){
+                    $groupInfo = $this->getGroup($groupId);
+                    return ws_message('CREATE_GROUP_RESULT',200, $groupInfo);
+                }
+                return ws_message('CREATE_GROUP_RESULT',500,'创建失败');
             }
         }
         return ws_message("无效操作", 400);
@@ -149,15 +179,28 @@ class MessageController
         return "罗伯特";
     }
 
-    protected function friendList()
+    /**
+     * 显示好友和群组
+     *
+     * @return array
+     */
+    protected function friendList($userId)
     {
         $onlineUserId = $this->redis->hkeys('online');
         $count = $this->redis->hlen('users');
         $users = $this->redis->hmget('users', $onlineUserId);
         $friend = [];
         foreach ($users as $id => $user) {
-            $friend[$id] = unserialize($user);
+            $friend[$id] = $this->filterSecretUserField(unserialize($user));
             $friend[$id]['last_message'] = "";
+            $friend[$id]['contact_type'] = "user";
+        }
+
+        $groupIdList = $this->redis->smembers('users_union_group:'.$userId);
+        foreach($groupIdList as $groupId){
+            $buffer = $this->getGroup($groupId);
+            $buffer['contact_type'] = 'group';
+            $friend[] = $buffer;
         }
         return $friend;
     }
@@ -218,6 +261,92 @@ class MessageController
     {
         return $this->redis->hset('users', $user['id'], serialize($user));
     }
+
+    /**
+     * 创建群组
+     *
+     * @param $data
+     * @param $creator
+     * @return bool|int
+     */
+    protected function createGroup($data,$creator)
+    {
+        $creator = $this->filterSecretUserField($creator);
+        $groupId = rand(100000, 999999);
+        while ($this->redis->hexists('groups', $groupId)) {
+            $groupId = rand(100000, 999999);
+        }
+        $data['creator'] = $creator['id'];
+        $data['group_id'] = $groupId;
+        // 创建群组
+        if($this->redis->hset('groups', $groupId, serialize($data))){
+            // 创建群成员
+            $creatorId = $creator['id'];
+            $this->redis->hset('groups_users:'.$groupId, $creatorId, serialize($creator));
+
+            // 关联到创建者
+            $this->redis->sadd('users_union_group:'.$creatorId, $groupId);
+            return $groupId;
+        }
+        return false;
+    }
+
+    /**
+     * 获取群组信息
+     *
+     * @param $groupId
+     * @return mixed
+     */
+    protected function getGroup($groupId)
+    {
+        $group = unserialize($this->redis->hget('groups', $groupId));
+        // SMEMBERS
+        $users = $this->redis->hvals('groups_users:'.$groupId);
+        foreach($users as &$user){
+            $user = unserialize($user);
+        }
+        $group['users'] = $users;
+
+        // 补全群组信息
+        if(empty($group['group_name'])){
+            $group['group_name'] = '未命名'.$group['group_id'];
+        }
+
+        return $group;
+    }
+
+    /**
+     * 过滤用户隐私字段
+     *
+     * @param $user
+     * @return mixed
+     */
+    protected function filterSecretUserField($user){
+        unset($user['password']);
+        return $user;
+    }
+    /**
+     * 过滤群组隐私字段
+     *
+     * @param $group
+     * @return mixed
+     */
+    protected function filterSecretGroupField($group){
+        unset($group['password']);
+        return $group;
+    }
+
+    /**
+     * 获取在线用户FD
+     *
+     * @param array $userId
+     * @return mixed
+     */
+    protected function getOnlineUserFd($userId = [])
+    {
+        return $this->redis->hmget('online',$userId);
+    }
+
 
 
 

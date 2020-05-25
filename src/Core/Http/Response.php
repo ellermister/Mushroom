@@ -8,6 +8,7 @@ class Response
 {
     protected $charset = 'utf-8';
     protected $contentType = 'text/plain';
+    protected $headers = [];
     protected $content;
     protected $swooleResponse;
 
@@ -71,12 +72,27 @@ class Response
     }
 
     /**
+     * 设置header头
+     *
+     * @param $name
+     * @param $value
+     */
+    public function setHeader($name, $value)
+    {
+        $this->headers[$name] = $value;
+    }
+
+
+    /**
      * 响应终止
      * @author ELLER
      */
     public function terminate()
     {
         $this->swooleResponse->header("Content-Type", $this->contentType);
+        foreach ($this->headers as $headerName => $headerValue) {
+            $this->swooleResponse->header($headerName, $headerValue);
+        }
         $this->swooleResponse->end($this->content);
     }
 

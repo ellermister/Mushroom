@@ -1,5 +1,4 @@
 <?php
-
 require "vendor/autoload.php";
 
 $di = new Mushroom\Application(__DIR__);

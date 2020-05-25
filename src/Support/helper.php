@@ -108,21 +108,24 @@ function de_message($text)
  * @param null $default
  * @return |null
  */
-function env($name, $default = null)
-{
-    static $envRaw = null;
+if(!function_exists('env')){
+    function env($name, $default = null)
+    {
+        static $envRaw = null;
 
-    $env = app()->getBasePath() . DIRECTORY_SEPARATOR . '.env';
-    if (is_file($env)) {
-        if ($envRaw == null) {
-            $envRaw = file_get_contents($env);
+        $env = app()->getBasePath() . DIRECTORY_SEPARATOR . '.env';
+        if (is_file($env)) {
+            if ($envRaw == null) {
+                $envRaw = file_get_contents($env);
+            }
+            if (preg_match('/' . $name . '\s*\=\s*"?(\S+)"?/is', $envRaw, $matches)) {
+                return $matches[1] ?? $default;
+            }
         }
-        if (preg_match('/' . $name . '\s*\=\s*"?(\S+)"?/is', $envRaw, $matches)) {
-            return $matches[1] ?? $default;
-        }
+        return $default;
     }
-    return $default;
 }
+
 
 /**
  * 通信加密2
