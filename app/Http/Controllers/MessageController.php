@@ -190,18 +190,24 @@ class MessageController
         $count = $this->redis->hlen('users');
         $users = $this->redis->hmget('users', $onlineUserId);
         $friend = [];
-        foreach ($users as $id => $user) {
-            $friend[$id] = $this->filterSecretUserField(unserialize($user));
-            $friend[$id]['last_message'] = "";
-            $friend[$id]['contact_type'] = "user";
+        if(is_array($users)){
+            foreach ($users as $id => $user) {
+                $friend[$id] = $this->filterSecretUserField(unserialize($user));
+                $friend[$id]['last_message'] = "";
+                $friend[$id]['contact_type'] = "user";
+            }
         }
 
+
         $groupIdList = $this->redis->smembers('users_union_group:'.$userId);
-        foreach($groupIdList as $groupId){
-            $buffer = $this->getGroup($groupId);
-            $buffer['contact_type'] = 'group';
-            $friend[] = $buffer;
+        if(is_array($groupIdList)){
+            foreach($groupIdList as $groupId){
+                $buffer = $this->getGroup($groupId);
+                $buffer['contact_type'] = 'group';
+                $friend[] = $buffer;
+            }
         }
+
         return $friend;
     }
 
