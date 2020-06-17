@@ -26,7 +26,7 @@ class TelegramBot extends Command
     protected $blockUpdateTime1 = 0;
     protected $blockUpdateTime2 = 0;
 
-    protected $daemon = false;
+    protected $daemon = true;
 
     protected $bot_api_key;
     protected $bot_username;
