@@ -19,6 +19,7 @@ class Command
     public function invoke(callable $fun)
     {
         $process = new Process($fun);
+        $process->start();
         $this->process[] = $process;
         return $process;
     }

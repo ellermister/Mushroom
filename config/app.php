@@ -43,10 +43,12 @@ return [
 
     'command' => [
         'table' => [
-            'imei' => [
+            'tg_photo' => [
                 'size'   => 1024000,
                 'column' => [
-                    'text' => [\Swoole\Table::TYPE_STRING, 64],
+                    'is_del' => [\Swoole\Table::TYPE_INT, 1],
+                    'chat_id' => [\Swoole\Table::TYPE_STRING, 64],
+                    'message_id' => [\Swoole\Table::TYPE_STRING, 64],
                 ]
             ]
         ]

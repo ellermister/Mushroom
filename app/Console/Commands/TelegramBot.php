@@ -8,9 +8,11 @@
 
 namespace App\Console\Commands;
 
+use App\Lib\Qrcode\QRCode;
 use Longman\TelegramBot\Request;
 use Mushroom\Application;
 use Mushroom\Core\Console\Command;
+use Swoole\Process;
 
 class TelegramBot extends Command
 {
@@ -24,7 +26,10 @@ class TelegramBot extends Command
     protected $blockUpdateTime1 = 0;
     protected $blockUpdateTime2 = 0;
 
-    protected $daemon = true;
+    protected $daemon = false;
+
+    protected $bot_api_key;
+    protected $bot_username;
 
     /**
      * @var Application
@@ -47,12 +52,25 @@ class TelegramBot extends Command
      */
     public function handle(Application $application)
     {
-        $bot_api_key = $application->getConfig('telegram.bot_api_key');
-        $bot_username = $application->getConfig('telegram.bot_username');
+        $this->bot_api_key = $application->getConfig('telegram.bot_api_key');
+        $this->bot_username = $application->getConfig('telegram.bot_username');
         $this->app = $application;
         $this->blockKeyword = $this->app->getConfig('telegram.block_keywords');
 
-        $telegram = new \Longman\TelegramBot\Telegram($bot_api_key, $bot_username);
+        // 消息处理
+        $this->invoke(function(){
+            $this->loopMessage();
+        });
+        // 图片处理
+        $this->invoke(function(){
+            $this->loopPhoto();
+        });
+        $this->wait();
+    }
+
+    protected function loopMessage()
+    {
+        $telegram = new \Longman\TelegramBot\Telegram($this->bot_api_key, $this->bot_username);
         $mysql_credentials = [
             'host'     => '127.0.0.1',
             'user'     => 'root',
@@ -68,7 +86,6 @@ class TelegramBot extends Command
             $messages = $telegram->handleGetUpdates();
             if (isset($messages->result) && is_array($messages->result)) {
                 foreach ($messages->result as $item) {
-
                     if ($item->message['chat']['type'] == 'private') {
                         echo '收到：' . $item->message['text'] . PHP_EOL;
                         $chat_id = $item->message['chat']['id'];
@@ -108,7 +125,7 @@ class TelegramBot extends Command
                             $this->blockForwardChat($item->message);
                         }
 
-                        if (isset($item->message['caption']) && isset($item->message['photo'])) {
+                        if (isset($item->message['caption']) || isset($item->message['photo'])) {
                             $this->blockPhotoCaption($item->message);
                         }
                     }
@@ -116,6 +133,23 @@ class TelegramBot extends Command
             } else {
                 var_dump($messages);
             }
+        }
+    }
+
+    protected function loopPhoto()
+    {
+        while (1){
+            $tg_photo = $this->app->getTable('tg_photo');
+            var_dump($tg_photo);
+            $tg_photo->set(strval(time().rand(10000,999999)),[
+                'is_del' => 0,
+                'chat_id' => 222,
+                'message_id' => 333,
+            ]);
+            foreach($tg_photo as $key => $item){
+                $tg_photo->del($key);
+            }
+            sleep(10);
         }
     }
 
@@ -251,6 +285,19 @@ class TelegramBot extends Command
         $chat_id = $message['chat']['id'];
         if (isset($message['photo'])) {
             // 暂无，预加二维码识别
+//                $timer = \Swoole\Timer::after(1001,function(){
+//                    var_dump('sss');
+////                    var_dump('即将执行二维码识别',$message['photo']);
+////                    if($this->blockQRCode($message['photo'])){
+////                        Request::deleteMessage([
+////                            'chat_id'    => $chat_id,
+////                            'message_id' => $message['message_id'],
+////                        ]);
+////                        var_dump('二维码识别执行完成');
+////                    }
+//                });
+                var_dump('已经执行二维码识别事件',$timer);
+
         }
 
         if (isset($message['caption']) && $this->blockKeyword($message['caption'])) {
@@ -260,6 +307,35 @@ class TelegramBot extends Command
             ]);
         }
     }
+
+    protected function blockQRCode($img)
+    {
+        $cacheDir = $this->app->getBasePath().'/storage/app/img';
+        if(!is_dir($cacheDir)) mkdir($cacheDir);
+        if(!is_dir($cacheDir)) return false;// 缓存目录不存在则跳过当前拦截
+        $isBan = false;
+
+        $lastImg = end($img);//取最后一张图，尺寸大
+        $response = Request::getFile(['file_id' => $lastImg['file_id']]);
+        if($result = $response->getResult()){
+            if(isset($result->file_id)){
+                $url = sprintf("https://api.telegram.org/file/bot%s/%s",$this->bot_api_key,$result->file_path);
+                $cachePath = $cacheDir.DIRECTORY_SEPARATOR.md5($result->file_path);
+                file_put_contents($cachePath, file_get_contents($url));
+                try{
+                    if(QRCode::text($cachePath) !== false){
+                        @unlink($cachePath);
+                        $isBan = true;
+                    }
+                }catch (\Throwable $throwable){
+                    $this->error("识别二维码遇到错误：".$throwable->getMessage());
+                }
+                @unlink($cachePath);
+            }
+        }
+        return $isBan;
+    }
+
 
 
 }
