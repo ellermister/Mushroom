@@ -46,8 +46,8 @@ return [
             'tg_photo' => [
                 'size'   => 1024000,
                 'column' => [
-                    'is_del' => [\Swoole\Table::TYPE_INT, 1],
-                    'chat_id' => [\Swoole\Table::TYPE_STRING, 64],
+                    'file_id'    => [\Swoole\Table::TYPE_STRING, 128],
+                    'chat_id'    => [\Swoole\Table::TYPE_STRING, 64],
                     'message_id' => [\Swoole\Table::TYPE_STRING, 64],
                 ]
             ]

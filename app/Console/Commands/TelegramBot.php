@@ -57,19 +57,6 @@ class TelegramBot extends Command
         $this->app = $application;
         $this->blockKeyword = $this->app->getConfig('telegram.block_keywords');
 
-        // 消息处理
-        $this->invoke(function(){
-            $this->loopMessage();
-        });
-        // 图片处理
-        $this->invoke(function(){
-            $this->loopPhoto();
-        });
-        $this->wait();
-    }
-
-    protected function loopMessage()
-    {
         $telegram = new \Longman\TelegramBot\Telegram($this->bot_api_key, $this->bot_username);
         $mysql_credentials = [
             'host'     => '127.0.0.1',
@@ -81,6 +68,20 @@ class TelegramBot extends Command
 //        $telegram->enableMySql($mysql_credentials);
 //        $telegram->handleGetUpdates();
         $telegram->useGetUpdatesWithoutDatabase(true);
+
+        // 消息处理
+        $this->invoke(function()use($telegram){
+            $this->loopMessage($telegram);
+        });
+        // 图片处理
+        $this->invoke(function(){
+            $this->loopPhoto();
+        });
+        $this->wait();
+    }
+
+    protected function loopMessage($telegram)
+    {
         $handler = true;
         while ($handler) {
             $messages = $telegram->handleGetUpdates();
@@ -139,17 +140,21 @@ class TelegramBot extends Command
     protected function loopPhoto()
     {
         while (1){
-            $tg_photo = $this->app->getTable('tg_photo');
-            var_dump($tg_photo);
-            $tg_photo->set(strval(time().rand(10000,999999)),[
-                'is_del' => 0,
-                'chat_id' => 222,
-                'message_id' => 333,
-            ]);
+            $tg_photo = $this->app->getTable('tg_photo','command');
             foreach($tg_photo as $key => $item){
+                $beginTime = time();
+                if ($this->blockQRCode($item['file_id'])) {
+                    var_dump('识别成功,耗时:'.(time() - $beginTime));
+                    $chat_id = $item['chat_id'];
+                    $message_id = $item['message_id'];
+                    Request::deleteMessage([
+                        'chat_id'    => $chat_id,
+                        'message_id' => $message_id,
+                    ]);
+                }
                 $tg_photo->del($key);
             }
-            sleep(10);
+            usleep(100*1000);
         }
     }
 
@@ -284,20 +289,13 @@ class TelegramBot extends Command
     {
         $chat_id = $message['chat']['id'];
         if (isset($message['photo'])) {
-            // 暂无，预加二维码识别
-//                $timer = \Swoole\Timer::after(1001,function(){
-//                    var_dump('sss');
-////                    var_dump('即将执行二维码识别',$message['photo']);
-////                    if($this->blockQRCode($message['photo'])){
-////                        Request::deleteMessage([
-////                            'chat_id'    => $chat_id,
-////                            'message_id' => $message['message_id'],
-////                        ]);
-////                        var_dump('二维码识别执行完成');
-////                    }
-//                });
-                var_dump('已经执行二维码识别事件',$timer);
-
+            $photo = end($message['photo']);
+            $tg_photo = $this->app->getTable('tg_photo','command');
+            $tg_photo->set(time() . rand(1000, 9999), [
+                'file_id'     => $photo['file_id'],
+                'chat_id'    => $chat_id,
+                'message_id' => $message['message_id'],
+            ]);
         }
 
         if (isset($message['caption']) && $this->blockKeyword($message['caption'])) {
@@ -308,15 +306,13 @@ class TelegramBot extends Command
         }
     }
 
-    protected function blockQRCode($img)
+    protected function blockQRCode($file_id)
     {
         $cacheDir = $this->app->getBasePath().'/storage/app/img';
         if(!is_dir($cacheDir)) mkdir($cacheDir);
         if(!is_dir($cacheDir)) return false;// 缓存目录不存在则跳过当前拦截
         $isBan = false;
-
-        $lastImg = end($img);//取最后一张图，尺寸大
-        $response = Request::getFile(['file_id' => $lastImg['file_id']]);
+        $response = Request::getFile(['file_id' => $file_id]);
         if($result = $response->getResult()){
             if(isset($result->file_id)){
                 $url = sprintf("https://api.telegram.org/file/bot%s/%s",$this->bot_api_key,$result->file_path);

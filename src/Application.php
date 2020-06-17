@@ -60,13 +60,18 @@ class Application extends Container
 
     /**
      * 获取内存表
+     *
      * @param $name
+     * @param string $from
      * @return Table|null
-     * @author ELLER
      */
-    public function getTable($name)
+    public function getTable($name, $from = 'memory')
     {
-        $list = $this->get('memory.table.list');
+        if($from == 'memory'){
+            $list = $this->get('memory.table.list');
+        }else{
+            $list = $this->get('command.table.list');
+        }
         return $list[$name] ?? null;
     }
 

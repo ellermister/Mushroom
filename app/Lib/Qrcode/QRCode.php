@@ -15,7 +15,9 @@ class QRCode
     public static function text($img)
     {
         $QrReader = new \QrReader($img);
-        return $QrReader->text();
+        $result = $QrReader->text();
+        unset($QrReader);
+        return $result;
     }
 
 }
