@@ -174,3 +174,14 @@ function make_random_string($strlen = 32){
     }
     return $string;
 }
+
+/**
+ * 密码哈希
+ *
+ * @param $text
+ * @return bool|string
+ */
+function bcrypt($text)
+{
+    return password_hash($text, PASSWORD_BCRYPT);
+}

@@ -10,6 +10,7 @@ class Response
     protected $contentType = 'text/plain';
     protected $headers = [];
     protected $content;
+    protected $code = 200;
     protected $swooleResponse;
 
     /**
@@ -76,10 +77,24 @@ class Response
      *
      * @param $name
      * @param $value
+     * @return $this
      */
     public function setHeader($name, $value)
     {
         $this->headers[$name] = $value;
+        return $this;
+    }
+
+    /**
+     * 设置状态码
+     *
+     * @param $code
+     * @return $this
+     */
+    public function setCode($code)
+    {
+        $this->code = intval($code);
+        return $this;
     }
 
 
@@ -93,6 +108,7 @@ class Response
         foreach ($this->headers as $headerName => $headerValue) {
             $this->swooleResponse->header($headerName, $headerValue);
         }
+        $this->swooleResponse->status($this->code);
         $this->swooleResponse->end($this->content);
     }
 

@@ -72,7 +72,17 @@ class Connect
             $httpConfig = app()->getConfig('database');
             $swoole_mysql = new MySQL();
             $httpConfig['servers'][$this->key]['fetch_mode'] = true;
-            var_dump($swoole_mysql->connect($httpConfig['servers'][$this->key]));
+            try {
+                $connectRes = $swoole_mysql->connect($httpConfig['servers'][$this->key]);
+
+            } catch (\Exception $exception) {
+                var_dump($exception->getMessage());
+                throw new $exception;
+            }
+            if(!$connectRes){
+                var_dump('mysql connect fail!');
+                var_dump($swoole_mysql->connect_error);
+            }
             self::$resource = $swoole_mysql;
         }
         return self::$resource;
@@ -127,6 +137,9 @@ class Connect
     public function exec($sql, $data = [], $lastId = false)
     {
         list($result, $res) = $this->execute($sql, $data);
+        if (isset($res->error) && !empty($res->error)) {
+            throw new DbException($res->error, $res->errno);
+        }
         if($lastId){
             $r = $res->insert_id;
         }else{

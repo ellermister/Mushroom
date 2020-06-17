@@ -85,8 +85,8 @@ class Build
         $list = $this->connect->findAll($sql, $this->build);
         $data['list'] = $list;
         $data['count'] = $this->count();
-        $data['page'] = $page;
-        $data['page_size'] = $pageSize;
+        $data['page'] = intval($page);
+        $data['page_size'] = intval($pageSize);
         return $data;
     }
 
@@ -98,9 +98,19 @@ class Build
      */
     public function count()
     {
+        $temp = ['columns' => $this->columns, 'column' => $this->column, 'group_by' => $this->group_by, 'limit' => $this->limit,'order' => $this->order_by];//暂存
         $this->column = "count(*) as count";
+        $this->columns = [];
+        $this->group_by = [];
+        $this->order_by = [];
+        $this->limit = 1;
 
         $sql = $this->getSelectSql();
+        $this->columns = $temp['columns']; //恢复
+        $this->column = $temp['column']; //恢复
+        $this->group_by = $temp['group_by']; //恢复
+        $this->order_by = $temp['order']; //恢复
+        $this->limit = $temp['limit']; //恢复
         $row = $this->connect->find($sql, $this->build);
         if($row){
             return intval($row['count']);

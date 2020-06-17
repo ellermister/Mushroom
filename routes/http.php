@@ -6,4 +6,8 @@ return [
     '/user/friend' => 'UserController@getFriend',
     '/group/info' => 'UserController@getGroupInfo',
     '/group/join' => 'UserController@joinGroupPage',
+    '/user/test' => 'UserController@test',
+
+    '/user/register/guest' => 'UserController@registerGuestUser',
+    '/user/guest/verify' => 'UserController@verifyGuest',
 ];

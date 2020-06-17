@@ -118,14 +118,29 @@ class Websocket
 //            $connect = $this->server->connection_info($request->fd);
 //            $sessionId = $connect['reactor_id'] . '_' . $request->fd;
 //            $this->storeSeesion($sessionId, $requestObject);
+            $content = null;
+            if ($this->handleCorsRequest($requestObject, $responseObject)) {
+                $content = $responseObject;
+            } else {
+                try {
+                    $content = $this->route->handleWithHttp($requestObject->getPathInfo());
+                } catch (\Throwable $throwable) {
+                    $responseObject->setCode(500);
+                    $content = $throwable->getMessage();
+                } catch (\Exception $exception) {
+                    $responseObject->setCode(500);
+                    $content = $exception->getMessage();
+                }
+            }
 
-            $content = $this->route->handleWithHttp($requestObject->getPathInfo());
             if ($content instanceof Response) {
                 $content->terminate();
             } else {
                 $responseObject->setContent($content);
                 $responseObject->terminate();
             }
+
+
         });
 
         echo '===================================' . PHP_EOL;
@@ -170,5 +185,29 @@ class Websocket
         $path = app()->getBasePath() . '/storage/session/' . $fd;
         unlink($path);
     }
+
+    /**
+     * 处理cors请求
+     * true则放行
+     *
+     * @param Request $request
+     * @param Response $response
+     * @return bool|Response
+     */
+    protected function handleCorsRequest(Request $request, Response $response)
+    {
+        $origin = app()->getConfig('app.cors.origin', '*');
+        $response->setHeader('Access-Control-Allow-Origin', $origin);
+        $response->setHeader('Access-Control-Allow-Methods', 'OPTIONS');
+        $response->setHeader('Access-Control-Allow-Headers', 'x-requested-with,session_id,Content-Type,token,Origin');
+        $response->setHeader('Access-Control-Max-Age', '86400');
+        $response->setHeader('Access-Control-Allow-Credentials', 'true');
+        if ($request->method() == 'OPTIONS') {
+            $response->setCode(200);
+            return true;
+        }
+        return false;
+    }
+
 
 }

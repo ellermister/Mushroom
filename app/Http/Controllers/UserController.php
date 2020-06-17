@@ -8,6 +8,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Model\User;
 use Mushroom\Application;
 use Mushroom\Core\Http\Request;
 use Mushroom\Core\Http\Response;
@@ -23,6 +24,42 @@ class UserController
         $this->app = $application;
         $this->redis = $redis;
     }
+
+    public function test()
+    {
+        return js_message('ok', 200, User::getAllUser());
+    }
+
+    /**
+     * 创建访客
+     *
+     * @return false|string
+     */
+    public function registerGuestUser()
+    {
+        $guest = User::registerGuestUser();
+        if ($guest) {
+            return js_message('ok', 200, $guest);
+        }
+        return js_message('创建访客失败', 500);
+    }
+
+    /**
+     * 验证访客内容
+     *
+     * @param Request $request
+     * @return false|string
+     */
+    public function verifyGuest(Request $request)
+    {
+        $token = $request->input('token');
+        if(User::parsePasswordToken($token)){
+            return js_message('ok',200);
+        }
+        return js_message('token error',401);
+    }
+
+
 
     public function getFriend(Request $request)
     {
@@ -91,7 +128,7 @@ class UserController
         $userId = $waitVerifyToken[0];
         $userInfo = $this->getUser($userId);
         // 判断是否已经加入
-        if ($this->redis->hget('groups_users:' . $groupId, $userId)){
+        if ($this->redis->hget('groups_users:' . $groupId, $userId)) {
             $response->setContent(js_message('已经加入', 302));
             $response->setHeader('Access-Control-Allow-Origin', '*');
             $response->setHeader('Access-Control-Allow-Methods', 'POST,GET');
