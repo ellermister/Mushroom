@@ -51,6 +51,7 @@ class Connect
         try{
             $res = $this->getRes()->prepare($sql);
             if(!$res){
+                var_dump($this->getRes());
                 throw new DbException(json_encode([$this->getRes()->errno, $this->getRes()->error]));
                 return false;
             }else{
@@ -68,6 +69,7 @@ class Connect
      */
     protected function getRes()
     {
+        self::$resource = null;
         if (self::$resource == null) {
             $httpConfig = app()->getConfig('database');
             $swoole_mysql = new MySQL();

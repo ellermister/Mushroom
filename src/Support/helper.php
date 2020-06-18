@@ -80,7 +80,10 @@ function js_message($message, $code = 200, $data = null)
         'code'    => $code,
         'data'    => $data
     ];
-    return json_encode($format);
+    $responseObject = app()->get(\Mushroom\Core\Http\Response::class);
+    $responseObject->setContent(json_encode($format));
+    $responseObject->setContentType('application/json');
+    return $responseObject;
 }
 
 /**

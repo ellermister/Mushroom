@@ -72,8 +72,9 @@ class User extends Model
         $username = self::randName();
         list($username, $discriminator) = self::getAvailableName($username);
         $password = make_random_string(64);
+        $email = self::randEmail();
         $data = [
-            'email'         => self::randEmail(),
+            'email'         => $email,
             'username'      => $username,
             'discriminator' => $discriminator,
             'password'      => bcrypt($password),
@@ -88,10 +89,10 @@ class User extends Model
         $result = self::create($data);
         if ($result) {
             return [
-                'email'         => self::randEmail(),
+                'email'         => $email,
                 'username'      => $username,
                 'discriminator' => $discriminator,
-                'token'         => self::createPasswordToken($username, $password),
+                'token'         => self::createPasswordToken($email, $password),
                 'avatar'        => '',
                 'locale'        => 'zh-CN',
                 'phone'         => '',
@@ -129,5 +130,40 @@ class User extends Model
         }
         return false;
     }
+
+    /**
+     * 获取用户信息通过token
+     *
+     * @param $token
+     * @return bool|mixed
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function getUserWithToken($token)
+    {
+        if($tokenInfo = self::parsePasswordToken($token)){
+            list($email, $password) = $tokenInfo;
+            return self::getProfile($email,$password);
+        }
+        return false;
+    }
+
+    /**
+     * 获取资料
+     *
+     * @param $email
+     * @param $password
+     * @return bool|mixed
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function getProfile($email, $password)
+    {
+        $user = self::where('email',$email)->find();
+        if($user && password_verify($password,$user['password'])){
+            unset($user['password']);
+            return $user;
+        }
+        return false;
+    }
+
 
 }

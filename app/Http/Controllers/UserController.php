@@ -8,6 +8,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Model\Friend;
+use App\Model\Group;
 use App\Model\User;
 use Mushroom\Application;
 use Mushroom\Core\Http\Request;
@@ -59,6 +61,55 @@ class UserController
         return js_message('token error',401);
     }
 
+    /**
+     * 获取个人资料(token)
+     *
+     * @param Request $request
+     * @return mixed
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function getProfile(Request $request)
+    {
+        $token = $request->input('token');
+        if($user = User::getUserWithToken($token)){
+            return js_message('ok',200, $user);
+        }
+        return js_message('token error',401);
+    }
+
+    /**
+     * 获取最近消息（联系人、群组）
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function getRecentMessage(Request $request)
+    {
+        $token = $request->input('token');
+        if($user = User::getUserWithToken($token)){
+            $recent = [];
+            $groups = Group::getUserGroups($user['id']);
+            $friends = Friend::getUserFriend($user['id']);
+            foreach($groups as $item){
+                $item['contact_type'] = 'group';
+                $item['active'] = false;
+                $recent[] = $item;
+            }
+            foreach($friends as $item){
+                $item['contact_type'] = 'friend';
+                $item['active'] = false;
+                $recent[] = $item;
+            }
+            return js_message('ok',200, $recent);
+        }
+        return js_message('token error',401);
+    }
+
+
+    /**
+     *   以下为旧版本内容
+     **/
 
 
     public function getFriend(Request $request)
