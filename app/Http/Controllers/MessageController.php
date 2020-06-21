@@ -8,6 +8,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Model\Group;
+use App\Model\User;
 use Mushroom\Application;
 use Mushroom\Core\Http\Request;
 use Mushroom\Core\Redis;
@@ -55,47 +57,24 @@ class MessageController
             return false;
         }
         $message = de_message($frame->data);
-
         if ($client['auth'] == 0) {
             if ($message->message == 'AUTH_VERIFY') {
                 $client['auth'] = 1; // 设置认证通过
+                $token = $message->data;
                 $waitVerifyToken = net_decrypt_data($message->data, $this->app->getConfig('app.key'));
                 $waitVerifyToken = explode(':',$waitVerifyToken);
-                if ($this->hasUser($waitVerifyToken[0])) {
-                    $userId = $waitVerifyToken[0];
-                    $user = $this->getUser($userId);
-
-                    if(!isset($user['password'])){
-                        // 没有密码，则是旧版本过渡，无视验证
-                        $user['password'] = make_random_string();
-                    }else{
-                        // 有密码则必须验证密码
-                        if(trim($user['password']) != trim($waitVerifyToken[1])){
-                            return ws_message('AUTH_FAIL',401,'密码验证失败');
-                        }
-                    }
-                    $this->updateUser($user);
-                    $token = net_encrypt_data($user['id'].':'.$user['password'],$this->app->getConfig('app.key'));
-                } else {
-                    $avatar = $this->randAvatar();
-                    $userId = $this->getNewUserId();
-                    $user = [
-                        'id'         => $userId,
-                        'first_name' => $this->randName(),
-                        'avatar'     => $avatar,
-                        'password'   => make_random_string(),
-                    ];
-                    $token = net_encrypt_data($user['id'].':'.$user['password'],$this->app->getConfig('app.key'));
-                    $this->registerUser($user);
+                if(!$user = User::parsePasswordToken($token)){
+                    $server->disconnect($frame->fd, 1000, ws_message('auth fail', 403));// 认证失败，断开连接
                 }
-
+                $user = User::getUserWithToken($token);
+                if(!$user){
+                    $server->disconnect($frame->fd, 1000, ws_message('get user profile fail', 403));// 认证失败，断开连接
+                }
                 $client['id'] = $user['id']; // 保存fd对应的用户ID
                 $userTable->set($frame->fd, $client);
                 $this->setUserOnline($user['id'], $request->fd);
 
-
                 return ws_message('AUTH_SUCCESS', 200, [
-                    'friend'  => $this->friendList($user['id']),
                     'user'    => $user,
                     'user_key'=> $token,
                     'message' => "auth success,目前在线" . count($userTable) . '个人'
@@ -109,26 +88,31 @@ class MessageController
             if ($message->message == 'private') {
                 if (is_array($messageData)) {
                     // 发送私人消息 ['to' => id, 'text' => '']
+                    // 拿到对方用户fd
                     $targetFd = $this->getUserOnlineFd($messageData['to']);
                     $user = $userTable->get($request->fd);
-                    $userProfile = $this->getUser($user['id']);
+                    $userProfile = User::getUserBasicProfile($user['id']);
+                    // 构建消息结构
                     $sendMsgArr = ['from' => $userProfile, 'text' => $messageData['text'], ];
                     if(isset($messageData['img'])){
                         $sendMsgArr['img'] = $messageData['img'];
                     }
+                    var_dump($targetFd);
+                    var_dump($sendMsgArr);
                     $server->push($targetFd, ws_message('private', 200, $sendMsgArr));
                     return ws_message('SEND_OK', 200);
                 }
             } else if ($message->message == 'group') {
                 if (is_array($messageData)) {
-                    $group = $this->getGroup($messageData['to']);
-                    if(isset($group['users']) && is_array($group['users'])){
+                    $group = Group::getGroup($messageData['to']);
+                    if($group){
+                        $members = Group::getGroupMembers($messageData['to']);
                         $user = $userTable->get($request->fd);
-                        $userProfile = $this->getUser($user['id']);
+                        $userProfile = User::getUserBasicProfile($user['id']);
 
                         $groupUserId = [];
-                        foreach($group['users'] as $_user){
-                            $groupUserId[] = $_user['id'];
+                        foreach($members as $_user){
+                            $groupUserId[] = $_user['user_id'];
                         }
                         $groupUserId = array_diff($groupUserId, [$user['id']]);
                         $groupUserFd = $this->getOnlineUserFd($groupUserId);

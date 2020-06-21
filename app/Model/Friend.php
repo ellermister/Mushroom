@@ -26,7 +26,7 @@ class Friend extends Model
     public static function getUserFriend($userId)
     {
         $list = self::table('users_friends')->where('user_id', $userId)->get();
-        $friendId = [];
+        $friendId = [$userId];
         if ($list) {
             foreach ($list as $row) {
                 $friendId[] = $row['friend_id'];

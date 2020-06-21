@@ -88,9 +88,9 @@ function js_message($message, $code = 200, $data = null)
 
 /**
  * decode message
+ *
  * @param $text
  * @return object
- * @author ELLER
  */
 function de_message($text)
 {

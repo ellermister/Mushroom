@@ -94,16 +94,61 @@ class UserController
             foreach($groups as $item){
                 $item['contact_type'] = 'group';
                 $item['active'] = false;
+                $item['last_message'] = '';
                 $recent[] = $item;
             }
             foreach($friends as $item){
                 $item['contact_type'] = 'friend';
                 $item['active'] = false;
+                $item['last_message'] = '';
                 $recent[] = $item;
             }
             return js_message('ok',200, $recent);
         }
         return js_message('token error',401);
+    }
+
+    /**
+     * 通过用户名搜索用户列表
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function searchUserList(Request $request)
+    {
+        $token = $request->input('token');
+        if(!$user = User::getUserWithToken($token)){
+            return js_message('token valid',401, []);
+        }
+
+        $username = $request->input('username');
+        if(empty($username)){
+            return js_message('username keyword valid!',200, []);
+        }
+        $list = User::searchUserForPublic($username, $user);
+        return js_message('ok',200, $list);
+    }
+
+    /**
+     * 通过名称搜索群组列表
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function searchGroupList(Request $request)
+    {
+        $token = $request->input('token');
+        if(!$user = User::getUserWithToken($token)){
+            return js_message('token valid',401, []);
+        }
+        $username = $request->input('username');
+        if(empty($username)){
+            return js_message('username keyword valid!',200, []);
+        }
+        $list = Group::searchGroupForPublic($username, $user);
+        return js_message('ok',200, $list);
     }
 
 

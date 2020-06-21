@@ -49,10 +49,11 @@ class Connect
     protected function execute($sql, $data = [])
     {
         try{
-            $res = $this->getRes()->prepare($sql);
+            $resources = $this->getRes();
+            $res = $resources->prepare($sql);
             if(!$res){
-                var_dump($this->getRes());
-                throw new DbException(json_encode([$this->getRes()->errno, $this->getRes()->error]));
+                var_dump($resources->error);
+                throw new DbException(json_encode([$resources->errno, $resources->error]));
                 return false;
             }else{
                 return [$res->execute($data), $res];

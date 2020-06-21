@@ -13,4 +13,9 @@ return [
     '/user/profile' => 'UserController@getProfile',
     '/user/friends' => 'FriendController@friendList',
     '/user/contact' => 'UserController@getRecentMessage',
+
+    // 搜索用户接口、搜索群组接口
+    '/user/friend/search' => 'UserController@searchUserList',
+    '/user/group/search' => 'UserController@searchGroupList',
+
 ];

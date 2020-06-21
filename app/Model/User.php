@@ -123,9 +123,9 @@ class User extends Model
      */
     public static function parsePasswordToken($text)
     {
-        $info = net_decrypt_data($text,app()->getConfig('app.key'));
+        $info = net_decrypt_data($text, app()->getConfig('app.key'));
         $userInfo = explode(':', $info);
-        if(count($userInfo) == 2){
+        if (count($userInfo) == 2) {
             return $userInfo;
         }
         return false;
@@ -140,9 +140,9 @@ class User extends Model
      */
     public static function getUserWithToken($token)
     {
-        if($tokenInfo = self::parsePasswordToken($token)){
+        if ($tokenInfo = self::parsePasswordToken($token)) {
             list($email, $password) = $tokenInfo;
-            return self::getProfile($email,$password);
+            return self::getProfile($email, $password);
         }
         return false;
     }
@@ -157,12 +157,56 @@ class User extends Model
      */
     public static function getProfile($email, $password)
     {
-        $user = self::where('email',$email)->find();
-        if($user && password_verify($password,$user['password'])){
+        $user = self::where('email', $email)->find();
+        if ($user && password_verify($password, $user['password'])) {
             unset($user['password']);
             return $user;
         }
         return false;
+    }
+
+    /**
+     * 获取用户基础资料
+     * 一般用户聊天记录消息中
+     *
+     * @param $id
+     * @return mixed
+     */
+    public static function getUserBasicProfile($id)
+    {
+        $user = self::column(['id', 'username', 'discriminator', 'avatar'])->find($id);
+        if (isset($user['avatar']) && empty($user['avatar'])) {
+            $user['avatar'] = "https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=2519824424,1132423651&fm=26&gp=0.jpg";
+        }
+        return $user;
+    }
+
+    /**
+     * 搜索用户（公共接口）
+     *
+     * @param $username
+     * @param $user
+     * @return array|bool
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function searchUserForPublic($username, $user)
+    {
+        $list = self::where('username', 'like', $username . '%')
+            ->where('public_flags', 0)->column(['id', 'username', 'discriminator', 'avatar', 'bio'])->get();
+        $friendId = [];
+        if ($list) {
+            $friendIdList = self::table('users_friends')->where('user_id', $user['id'])->column(['friend_id'])->get();
+            foreach ($friendIdList as $item) {
+                $friendId[] = $item['friend_id'];
+            }
+        }
+        foreach ($list as &$user) {
+            if (isset($user['avatar']) && empty($user['avatar'])) {
+                $user['avatar'] = "https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=2519824424,1132423651&fm=26&gp=0.jpg";
+            }
+            $user['is_added'] = in_array($user['id'], $friendId) ? true : false;
+        }
+        return $list;
     }
 
 

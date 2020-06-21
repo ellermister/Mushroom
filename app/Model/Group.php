@@ -46,7 +46,7 @@ class Group extends Model
      */
     public static function getGroupList($groupIdList)
     {
-        $groupList = self::where('id', 'in', $groupIdList)->column(['id', 'group_id', 'group_name', 'brief', 'announcement', 'avatar', 'creator_id','member_count'])->get();
+        $groupList = self::where('id', 'in', $groupIdList)->column(['id', 'group_id', 'group_name', 'brief', 'announcement', 'avatar', 'creator_id', 'member_count'])->get();
         foreach ($groupList as &$group) {
             if (empty($group['avatar'])) {
                 $group['avatar'] = self::getDefaultAvatar();
@@ -55,9 +55,63 @@ class Group extends Model
         return $groupList;
     }
 
+    /**
+     * 获取群组信息
+     *
+     * @param $id
+     * @return mixed
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function getGroup($id)
+    {
+        return self::where('id', $id)->find();
+    }
+
+    /**
+     * 获取群组成员
+     *
+     * @param $groupId
+     * @return array|bool
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function getGroupMembers($groupId)
+    {
+        return self::table('users_groups')->where('group_id', $groupId)->get();
+    }
+
     public static function getDefaultAvatar()
     {
         return "https://pic.sucaibar.com/pic/201307/18/6cd5a2822d.png";
+    }
+
+    /**
+     * 搜索公共群组
+     *
+     * @param $username
+     * @param $user
+     * @return array|bool
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function searchGroupForPublic($username, $user)
+    {
+        $list = self::where(function ($where) use ($username) {
+            $where->where('group_id', $username);
+            $where->whereOr('group_name', 'like', '%' . $username . '%');
+        })->column(['id', 'group_id', 'group_name', 'avatar', 'brief', 'member_count'])->get();
+        $groupId = [];
+        if ($list) {
+            $groupIdList = self::table('users_groups')->where('user_id', $user['id'])->column(['group_id'])->get();
+            foreach ($groupIdList as $item) {
+                $groupId[] = $item['group_id'];
+            }
+        }
+        foreach ($list as &$group) {
+            if (isset($group['avatar']) && empty($group['avatar'])) {
+                $group['avatar'] = "https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=2519824424,1132423651&fm=26&gp=0.jpg";
+            }
+            $group['is_added'] = in_array($group['id'], $groupId) ? true : false;
+        }
+        return $list;
     }
 
 }
