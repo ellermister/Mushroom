@@ -21,14 +21,19 @@ trait StructTrait
             $arr    = $connect->findAll('desc `' . $this->table . '`');
             $fields = [];
             $pri    = '';
+            $priList = [];
             foreach ($arr as $v) {
                 if ($v['Key'] == 'PRI') {
-                    $pri = $v['Field'];
+                    $pri =   $v['Field'];
+                    $priList[$v['Field']] = $v['Null'] == 'YES'? 0:1;
                 } else if ($v['Null'] == 'YES') {
                     $fields[$v['Field']] = 0;
                 } else {
                     $fields[$v['Field']] = 1;
                 }
+            }
+            if(count($priList)>1){
+                $fields = array_merge($fields, $priList);
             }
             self::$struct[$dns][$this->table] = ['field' => $fields, 'pri' => $pri];
         }

@@ -54,6 +54,37 @@ class Friend extends Model
         return $userList;
     }
 
+    /**
+     * 添加用户为好友
+     *
+     * @param $currentUserId
+     * @param $operatingUserId
+     * @return int|mixed
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function addUserToFriend($currentUserId, $operatingUserId)
+    {
+        if ($currentUserId == $operatingUserId || $currentUserId <= 0 || $operatingUserId <= 0) {
+            return false;
+        }
+        if(!User::where('id', $operatingUserId)->count()){
+            return false;
+        }
+        $count = self::table('users_friends')->where('user_id', $currentUserId)->where('friend_id', $operatingUserId)->count();
+        if (!$count) {
+            self::table('users_friends')->create([
+                'user_id'    => $currentUserId,
+                'friend_id'  => $operatingUserId,
+                'created_at' => time(),
+                'updated_at' => time(),
+            ]);
+            // 因为表没有自增ID，这里创建返回为0，不能确定成功失败。可以通过影响记录判断，但目前也没必要。直接返回成功。
+            return true;
+        }
+        return $count;
+    }
+
+
     public static function getDefaultAvatar()
     {
         return "https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=2519824424,1132423651&fm=26&gp=0.jpg";

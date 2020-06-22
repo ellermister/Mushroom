@@ -151,6 +151,26 @@ class UserController
         return js_message('ok',200, $list);
     }
 
+    /**
+     * 添加群组到联系人
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function addGroupToContact(Request $request)
+    {
+        $token = $request->input('token');
+        $groupId = $request->input('group_id');
+        if($user = User::getUserWithToken($token)){
+            if(Group::addGroupToContact($user['id'], $groupId)){
+                return js_message('ok',200);
+            }
+            return js_message('add group to contact fail!',500);
+        }
+        return js_message('token error',401);
+    }
+
 
     /**
      *   以下为旧版本内容

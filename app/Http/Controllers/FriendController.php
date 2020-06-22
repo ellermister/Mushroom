@@ -37,4 +37,24 @@ class FriendController
         return js_message('token error',401);
     }
 
+    /**
+     * 添加用户为好友
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function addUserToFriend(Request $request)
+    {
+        $token = $request->input('token');
+        $friendId = $request->input('friend_id');
+        if($user = User::getUserWithToken($token)){
+            if(Friend::addUserToFriend($user['id'], $friendId)){
+                return js_message('ok',200);
+            }
+            return js_message('add user to friend fail!',500);
+        }
+        return js_message('token error',401);
+    }
+
 }

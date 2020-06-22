@@ -114,4 +114,37 @@ class Group extends Model
         return $list;
     }
 
+
+    /**
+     * 添加群组到联系人
+     *
+     * @param $currentUserId
+     * @param $operatingGroupId
+     * @return int|mixed
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function addGroupToContact($currentUserId, $operatingGroupId)
+    {
+        if ($currentUserId == $operatingGroupId || $currentUserId <= 0 || $operatingGroupId <= 0) {
+            return false;
+        }
+        if(!Group::where('id', $operatingGroupId)->count()){
+            return false;
+        }
+        $count = self::table('users_groups')->where('user_id', $currentUserId)->where('group_id', $operatingGroupId)->count();
+        if (!$count) {
+            self::table('users_groups')->create([
+                'user_id'    => $currentUserId,
+                'group_id'  => $operatingGroupId,
+                'created_at' => time(),
+                'updated_at' => time(),
+            ]);
+            $memberCount = self::table('users_groups')->where('group_id', $operatingGroupId)->count();
+            self::where('id', $operatingGroupId)->update(['member_count' => intval($memberCount)]);
+            // 因为表没有自增ID，这里创建返回为0，不能确定成功失败。可以通过影响记录判断，但目前也没必要。直接返回成功。
+            return true;
+        }
+        return $count;
+    }
+
 }

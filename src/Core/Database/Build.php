@@ -21,7 +21,7 @@ class Build
     protected $build = [];
 
 
-     protected $primaryKey = 'id';
+     protected $primaryKey = '';
 
 
 

@@ -18,4 +18,8 @@ return [
     '/user/friend/search' => 'UserController@searchUserList',
     '/user/group/search' => 'UserController@searchGroupList',
 
+    // 添加用户为好友
+    '/user/friend/add' => 'FriendController@addUserToFriend',
+    '/user/group/add' => 'UserController@addGroupToContact',
+
 ];
