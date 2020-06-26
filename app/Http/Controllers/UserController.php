@@ -62,6 +62,24 @@ class UserController
     }
 
     /**
+     * 登录验证
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function loginUser(Request $request)
+    {
+        $username = $request->input('username');
+        $password = $request->input('password');
+        echo bcrypt('123123');
+        if($user = User::loginUser($username, $password)){
+            return js_message('ok',200, $user);
+        }
+        return js_message('用户名或者密码错误',500);
+    }
+
+    /**
      * 获取个人资料(token)
      *
      * @param Request $request
@@ -169,6 +187,37 @@ class UserController
             return js_message('add group to contact fail!',500);
         }
         return js_message('token error',401);
+    }
+
+    /**
+     * 获取贴图列表
+     *
+     * @return false|string
+     */
+    public function getStickerList(Request $request)
+    {
+        $stickersDir = $this->app->getBasePath().'/public/stickers';
+        $subDir = scandir($stickersDir);
+        $list = [];
+        foreach($subDir as $dir){
+            if($dir == '.' || $dir == '..'){
+                continue;
+            }
+            $list[$dir] = [];
+        }
+
+        $httpPubic = $request->getSchemeAndHttpHost()."/stickers/";
+        foreach($list as $name => $item){
+            $dir = $this->app->getBasePath().'/public/stickers/'.$name;
+            $fileList = scandir($dir);
+            foreach($fileList as $file){
+                if($file == '.' || $file == '..'){
+                    continue;
+                }
+                $list[$name][] = $httpPubic.$name.DIRECTORY_SEPARATOR.$file;
+            }
+        }
+        return js_message('stickers list',200, $list);
     }
 
 

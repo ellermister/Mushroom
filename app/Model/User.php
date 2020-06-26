@@ -104,6 +104,26 @@ class User extends Model
     }
 
     /**
+     * 登录用户
+     *
+     * @param $email
+     * @param $password
+     * @return bool|mixed
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function loginUser($email, $password)
+    {
+        $user = self::where('email', $email)->find();
+        var_dump($password);
+        if ($user && password_verify($password, $user['password'])) {
+            unset($user['password']);
+            $user['token'] = self::createPasswordToken($email, $password);
+            return $user;
+        }
+        return false;
+    }
+
+    /**
      * 创建一次性密码token
      *
      * @param $email
@@ -158,6 +178,7 @@ class User extends Model
     public static function getProfile($email, $password)
     {
         $user = self::where('email', $email)->find();
+        var_dump($password);
         if ($user && password_verify($password, $user['password'])) {
             unset($user['password']);
             return $user;

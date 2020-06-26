@@ -69,10 +69,12 @@ class MessageController
                 $user = User::getUserWithToken($token);
                 if(!$user){
                     $server->disconnect($frame->fd, 1000, ws_message('get user profile fail', 403));// 认证失败，断开连接
+                    return;
                 }
                 $client['id'] = $user['id']; // 保存fd对应的用户ID
                 $userTable->set($frame->fd, $client);
                 $this->setUserOnline($user['id'], $request->fd);
+                var_dump("online: id: ".$user['id']." => fd: ". $request->fd);
 
                 return ws_message('AUTH_SUCCESS', 200, [
                     'user'    => $user,
@@ -97,6 +99,9 @@ class MessageController
                     if(isset($messageData['img'])){
                         $sendMsgArr['img'] = $messageData['img'];
                     }
+                    if(isset($messageData['sticker'])){
+                        $sendMsgArr['sticker'] = $messageData['sticker'];
+                    }
                     var_dump($targetFd);
                     var_dump($sendMsgArr);
                     $server->push($targetFd, ws_message('private', 200, $sendMsgArr));
@@ -120,6 +125,9 @@ class MessageController
                         $sendMsgArr = ['from' => $userProfile, 'text' => $messageData['text'],'group' => $group];
                         if(isset($messageData['img'])){
                             $sendMsgArr['img'] = $messageData['img'];
+                        }
+                        if(isset($messageData['sticker'])){
+                            $sendMsgArr['sticker'] = $messageData['sticker'];
                         }
                         foreach($groupUserFd as $_fd){
                             $server->push($_fd,  ws_message('group', 200, $sendMsgArr));

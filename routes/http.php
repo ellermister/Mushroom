@@ -10,9 +10,13 @@ return [
 
     '/user/register/guest' => 'UserController@registerGuestUser',
     '/user/guest/verify' => 'UserController@verifyGuest',
+    '/user/login/verify' => 'UserController@loginUser',
     '/user/profile' => 'UserController@getProfile',
     '/user/friends' => 'FriendController@friendList',
     '/user/contact' => 'UserController@getRecentMessage',
+
+    // 贴图接口
+    '/user/stickers' => 'UserController@getStickerList',
 
     // 搜索用户接口、搜索群组接口
     '/user/friend/search' => 'UserController@searchUserList',

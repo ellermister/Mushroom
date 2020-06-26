@@ -143,10 +143,18 @@ class Websocket
 
         });
 
+        $documentRoot = $this->app->getBasePath().'/public';
+        $server->set([
+            'document_root' => $documentRoot, // v4.4.0以下版本, 此处必须为绝对路径
+            'enable_static_handler' => true,
+        ]);
+
         echo '===================================' . PHP_EOL;
         echo 'Websocket服务启动完毕！' . PHP_EOL;
         echo '监听地址：' . $this->host . PHP_EOL;
         echo '监听端口：' . $this->port . PHP_EOL;
+        echo '静态资源：' . $documentRoot . PHP_EOL;
+
         $this->server = $server;
         $this->app->set(Server::class, $this->server);
         $this->server->start();
