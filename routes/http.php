@@ -26,4 +26,8 @@ return [
     '/user/friend/add' => 'FriendController@addUserToFriend',
     '/user/group/add' => 'UserController@addGroupToContact',
 
+    // 用户消息获取
+    '/user/message/find' => 'UserController@getUserMessage',
+    '/group/message/find' => 'UserController@getGroupMessage',
+
 ];

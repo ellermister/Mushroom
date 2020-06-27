@@ -10,6 +10,7 @@ namespace App\Http\Controllers;
 
 use App\Model\Friend;
 use App\Model\Group;
+use App\Model\Message;
 use App\Model\User;
 use Mushroom\Application;
 use Mushroom\Core\Http\Request;
@@ -113,12 +114,14 @@ class UserController
                 $item['contact_type'] = 'group';
                 $item['active'] = false;
                 $item['last_message'] = '';
+                $item['unread'] = 0;
                 $recent[] = $item;
             }
             foreach($friends as $item){
                 $item['contact_type'] = 'friend';
                 $item['active'] = false;
                 $item['last_message'] = '';
+                $item['unread'] = 0;
                 $recent[] = $item;
             }
             return js_message('ok',200, $recent);
@@ -218,6 +221,59 @@ class UserController
             }
         }
         return js_message('stickers list',200, $list);
+    }
+
+    /**
+     * 获取用户消息
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function getUserMessage(Request $request)
+    {
+        $token = $request->input('token');
+        if(!$user = User::getUserWithToken($token)){
+            js_message('user not found!',404);
+        }
+        $fromId = $user['id'];
+        $targetId = $request->input('target_id');
+        $messageId = $request->input('message_id');
+        if(!$targetId){
+            return js_message('target id valid', 404,['target_id' => $targetId,'message_id' => $messageId]);
+        }
+
+        $list = Message::getUserMessage($fromId,$targetId, $messageId);
+        $lastId = null;
+        $last = end($list);
+        if($last)  $lastId = $last->_id->__toString();
+        return js_message('ok',200, ['list' => array_reverse($list), 'last_id' => $lastId]);
+    }
+    /**
+     * 获取群组消息
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function getGroupMessage(Request $request)
+    {
+        $token = $request->input('token');
+        if(!$user = User::getUserWithToken($token)){
+            js_message('user not found!',404);
+        }
+        $fromId = $user['id'];
+        $targetId = $request->input('target_id');
+        $messageId = $request->input('message_id');
+        if(!$targetId){
+            return js_message('target id valid', 404,['target_id' => $targetId,'message_id' => $messageId]);
+        }
+
+        $list = Message::getGroupMessage($fromId,$targetId, $messageId);
+        $lastId = null;
+        $last = end($list);
+        if($last)  $lastId = $last->_id->__toString();
+        return js_message('ok',200, ['list' => array_reverse($list), 'last_id' => $lastId]);
     }
 
 
