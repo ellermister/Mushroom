@@ -13,7 +13,8 @@ return [
     '/user/login/verify' => 'UserController@loginUser',
     '/user/profile' => 'UserController@getProfile',
     '/user/friends' => 'FriendController@friendList',
-    '/user/contact' => 'UserController@getRecentMessage',
+    '/user/contact' => 'UserController@getContactList',
+    '/user/contact/recent' => 'UserController@getRecentMessage',
 
     // 贴图接口
     '/user/stickers' => 'UserController@getStickerList',

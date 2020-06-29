@@ -11,6 +11,7 @@ namespace App\Http\Controllers;
 use App\Model\Friend;
 use App\Model\Group;
 use App\Model\Message;
+use App\Model\RecentContact;
 use App\Model\User;
 use Mushroom\Application;
 use Mushroom\Core\Http\Request;
@@ -97,13 +98,13 @@ class UserController
     }
 
     /**
-     * 获取最近消息（联系人、群组）
+     * 获取联系人（联系人、群组）
      *
      * @param Request $request
      * @return false|string
      * @throws \Mushroom\Core\Database\DbException
      */
-    public function getRecentMessage(Request $request)
+    public function getContactList(Request $request)
     {
         $token = $request->input('token');
         if($user = User::getUserWithToken($token)){
@@ -124,6 +125,22 @@ class UserController
                 $item['unread'] = 0;
                 $recent[] = $item;
             }
+            return js_message('ok',200, $recent);
+        }
+        return js_message('token error',401);
+    }
+    /**
+     * 获取最近联系人（联系人、群组）
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function getRecentMessage(Request $request)
+    {
+        $token = $request->input('token');
+        if($user = User::getUserWithToken($token)){
+            $recent = RecentContact::getRecentContact($user['id']);
             return js_message('ok',200, $recent);
         }
         return js_message('token error',401);
