@@ -45,7 +45,8 @@ class Friend extends Model
      */
     public static function getFriendList($friendIdList)
     {
-        $userList = User::where('id', 'in', $friendIdList)->column(['id', 'email', 'username', 'discriminator', 'bio', 'avatar', 'locale'])->get();
+        if(count($friendIdList)==0) return [];
+        $userList = User::where('id', 'in', $friendIdList)->column(['id', 'username', 'discriminator', 'bio', 'avatar', 'locale'])->get();
         foreach ($userList as &$friend) {
             if (empty($friend['avatar'])) {
                 $friend['avatar'] = self::getDefaultAvatar();

@@ -46,6 +46,7 @@ class Group extends Model
      */
     public static function getGroupList($groupIdList)
     {
+        if(count($groupIdList)==0) return [];
         $groupList = self::where('id', 'in', $groupIdList)->column(['id', 'group_id', 'group_name', 'brief', 'announcement', 'avatar', 'creator_id', 'member_count'])->get();
         foreach ($groupList as &$group) {
             if (empty($group['avatar'])) {

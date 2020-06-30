@@ -44,6 +44,28 @@ class Mongodb
     }
 
     /**
+     * 更新数据
+     *
+     * @param array $where
+     * @param $document
+     * @param $target
+     * @param $options
+     * @return \MongoDB\Driver\WriteResult
+     */
+    public function update(array $where,$document,$target,$options = [])
+    {
+        $bulk = new \MongoDB\Driver\BulkWrite;
+        $bulk->update(
+            $where,
+            ['$set' => $document],
+            array_merge(['multi' => false, 'upsert' => false], $options)
+        );
+        $writeConcern = new \MongoDB\Driver\WriteConcern(\MongoDB\Driver\WriteConcern::MAJORITY, 1000);
+        $result = $this->manager->executeBulkWrite($target, $bulk, $writeConcern);
+        return $result;
+    }
+
+    /**
      * 获取数据
      *
      * @param $filter

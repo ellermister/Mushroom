@@ -11,6 +11,7 @@ namespace App\Http\Controllers;
 use App\Model\Group;
 use App\Model\Message;
 use App\Model\User;
+use MongoDB\BSON\ObjectId;
 use Mushroom\Application;
 use Mushroom\Core\Http\Request;
 use Mushroom\Core\Mongodb;
@@ -106,6 +107,7 @@ class MessageController
                     }
                     // 目标联系人不一样，才发消息
                     if($messageData['to'] != $user['id']){
+                        $sendMsgArr['id'] = (new ObjectId())->__toString();
                         $server->push($targetFd, ws_message('private', 200, $sendMsgArr));
                     }
                     Message::storeUserMessage($sendMsgArr,$user['id'],$messageData['to']);
@@ -133,8 +135,10 @@ class MessageController
                         if(isset($messageData['sticker'])){
                             $sendMsgArr['sticker'] = $messageData['sticker'];
                         }
+
                         Message::storeGroupMessage($sendMsgArr,$group['id']);
                         foreach($groupUserFd as $_fd){
+                            $sendMsgArr['id'] = (new ObjectId())->__toString();
                             $server->push($_fd,  ws_message('group', 200, $sendMsgArr));
                         }
                         return ws_message('SEND_OK', 200);

@@ -14,7 +14,8 @@ return [
     '/user/profile' => 'UserController@getProfile',
     '/user/friends' => 'FriendController@friendList',
     '/user/contact' => 'UserController@getContactList',
-    '/user/contact/recent' => 'UserController@getRecentMessage',
+    '/user/contact/recent' => 'UserController@getRecentContact',
+    '/user/contact/recent/update' => 'UserController@updateRecentContact',
 
     // 贴图接口
     '/user/stickers' => 'UserController@getStickerList',

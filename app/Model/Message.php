@@ -110,6 +110,7 @@ class Message
             }else{
                 $message->type = 'receive';
             }
+            $message->id = $message->_id->__toString();
         }
         return $message;
     }

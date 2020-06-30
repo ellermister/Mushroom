@@ -116,6 +116,8 @@ class UserController
                 $item['active'] = false;
                 $item['last_message'] = '';
                 $item['unread'] = 0;
+                $item['scroll_top'] = -1;
+                $item['read_id'] = "";
                 $recent[] = $item;
             }
             foreach($friends as $item){
@@ -123,6 +125,8 @@ class UserController
                 $item['active'] = false;
                 $item['last_message'] = '';
                 $item['unread'] = 0;
+                $item['scroll_top'] = -1;
+                $item['read_id'] = "";
                 $recent[] = $item;
             }
             return js_message('ok',200, $recent);
@@ -136,7 +140,7 @@ class UserController
      * @return false|string
      * @throws \Mushroom\Core\Database\DbException
      */
-    public function getRecentMessage(Request $request)
+    public function getRecentContact(Request $request)
     {
         $token = $request->input('token');
         if($user = User::getUserWithToken($token)){
@@ -251,7 +255,7 @@ class UserController
     {
         $token = $request->input('token');
         if(!$user = User::getUserWithToken($token)){
-            js_message('user not found!',404);
+            return js_message('user not found!',404);
         }
         $fromId = $user['id'];
         $targetId = $request->input('target_id');
@@ -277,7 +281,7 @@ class UserController
     {
         $token = $request->input('token');
         if(!$user = User::getUserWithToken($token)){
-            js_message('user not found!',404);
+            return js_message('user not found!',404);
         }
         $fromId = $user['id'];
         $targetId = $request->input('target_id');
@@ -291,6 +295,31 @@ class UserController
         $last = end($list);
         if($last)  $lastId = $last->_id->__toString();
         return js_message('ok',200, ['list' => array_reverse($list), 'last_id' => $lastId]);
+    }
+
+    /**
+     * 更新最近联系人
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function updateRecentContact(Request $request)
+    {
+        $token = $request->input('token');
+        if(!$user = User::getUserWithToken($token)){
+            return js_message('user not found!',404);
+        }
+        $data = $request->input('data');
+        $data = json_decode($data,true);
+        if($data == null){
+            return js_message('data format error!',400);
+        }
+
+        if(RecentContact::setRecentContact($user['id'], $data)){
+            return js_message('ok!',200);
+        }
+        return js_message('update fail!',500);
     }
 
 
