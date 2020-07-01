@@ -260,15 +260,19 @@ class UserController
         $fromId = $user['id'];
         $targetId = $request->input('target_id');
         $messageId = $request->input('message_id');
+        $action = $request->input('action');
         if(!$targetId){
             return js_message('target id valid', 404,['target_id' => $targetId,'message_id' => $messageId]);
         }
 
-        $list = Message::getUserMessage($fromId,$targetId, $messageId);
+        $list = Message::getUserMessage($fromId,$targetId, $messageId,$action);
         $lastId = null;
         $last = end($list);
         if($last)  $lastId = $last->_id->__toString();
-        return js_message('ok',200, ['list' => array_reverse($list), 'last_id' => $lastId]);
+        if($action == 0){
+            $list = array_reverse($list);// 只有向上获取记录时需要反转数组
+        }
+        return js_message('ok',200, ['list' => $list, 'last_id' => $lastId]);
     }
     /**
      * 获取群组消息
@@ -286,15 +290,19 @@ class UserController
         $fromId = $user['id'];
         $targetId = $request->input('target_id');
         $messageId = $request->input('message_id');
+        $action = $request->input('action');
         if(!$targetId){
             return js_message('target id valid', 404,['target_id' => $targetId,'message_id' => $messageId]);
         }
 
-        $list = Message::getGroupMessage($fromId,$targetId, $messageId);
+        $list = Message::getGroupMessage($fromId,$targetId, $messageId, $action);
         $lastId = null;
         $last = end($list);
         if($last)  $lastId = $last->_id->__toString();
-        return js_message('ok',200, ['list' => array_reverse($list), 'last_id' => $lastId]);
+        if($action == 0){
+            $list = array_reverse($list);// 只有向上获取记录时需要反转数组
+        }
+        return js_message('ok',200, ['list' => $list, 'last_id' => $lastId]);
     }
 
     /**

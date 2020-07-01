@@ -38,16 +38,22 @@ class RecentContact
             $group = Group::getGroupList($result->group);
         }
         $recent = [];
-        var_dump($result);
         foreach($result->contacts as $row){
             if($row->contact_type == 'friend'){
-                if($contact = self::arrayGetItem($friend,'id', $row->id)){
-                    $recent [] = array_merge((array) $row, self::formatContact($contact));
+                if($contact = self::arrayGetItem($friend,['id' => $row->id])){
+                    // 获取这个联系人最新滚动数据
+                    $latestScroll = self::arrayGetItem($result->contacts,['id' => $row->id,'contact_type' =>$row->contact_type]);
+                    gettype($latestScroll) == 'object' && $latestScroll = get_object_vars($latestScroll);
+                    $recent [] = array_merge((array) $row, self::formatContact($contact, $latestScroll ?? []));
                 }
             }
             if($row->contact_type == 'group'){
-                if($contact = self::arrayGetItem($group,'id', $row->id)){
-                    $recent [] = array_merge((array) $row, self::formatContact($contact));
+                if($contact = self::arrayGetItem($group,['id' => $row->id])){
+                    // 获取这个联系人最新滚动数据
+                    $latestScroll = self::arrayGetItem($result->contacts,['id' => $row->id,'contact_type' =>$row->contact_type]);
+                    gettype($latestScroll) == 'object' && $latestScroll = get_object_vars($latestScroll);
+                    var_dump($latestScroll);
+                    $recent [] = array_merge((array) $row, self::formatContact($contact, $latestScroll ?? []));
                 }
             }
         }
@@ -58,27 +64,44 @@ class RecentContact
      * 从数组中根据item的值获取item
      *
      * @param array $list
-     * @param $itemKey
-     * @param $itemValue
+     * @param array $where
      * @return bool|mixed
      */
-    protected static function arrayGetItem(array &$list, $itemKey, $itemValue)
+    protected static function arrayGetItem(array &$list, array $where)
     {
         foreach($list as $item){
-            if(isset($item[$itemKey]) && $item[$itemKey]==$itemValue){
-                return $item;
+            $matchCount = 0;
+            foreach($where as $itemKey => $itemValue){
+                if(gettype($item)=='array' && isset($item[$itemKey]) && $item[$itemKey]==$itemValue){
+                    $matchCount ++;
+                }
+                if(gettype($item)=='object' && isset($item->$itemKey) && $item->$itemKey==$itemValue){
+                    $matchCount ++;
+                }
             }
+            if($matchCount == count($where)) return $item;
         }
         return false;
     }
 
-    protected static function formatContact(array $contact)
+    /**
+     * 格式化联系人数据(一般用于最近联系人)
+     *
+     * @param array $contact
+     * @param array $lastRecord
+     * @return array
+     */
+    protected static function formatContact(array $contact, array $lastRecord)
     {
         $contact['active'] = false;
         $contact['last_message'] = '';
         $contact['unread'] = 0;
         $contact['scroll_top'] = -1;
         $contact['read_id'] = "";
+        // 合并缓存中的最近联系人数据到联系人中给用户
+        $contact = array_merge($contact, $lastRecord);
+        echo '------------------'.PHP_EOL;
+        var_dump($contact);
         return $contact;
     }
 
@@ -119,13 +142,16 @@ class RecentContact
         $need = ['id','contact_type','read_id'];
         foreach($contacts as $contact){
             if(isset($contact['id']) && isset($contact['contact_type']) && isset($contact['read_id'])){
-                $data[] = self::arrayOnly($contact,$need);
+                // 去重判断
                 if($contact['contact_type'] == 'friend'){
+                    if(in_array($contact['id'], $friend)) continue;
                     $friend[] = $contact['id'];
                 }
                 if($contact['contact_type'] == 'group'){
+                    if(in_array($contact['id'], $group)) continue;
                     $group[] = $contact['id'];
                 }
+                $data[] = self::arrayOnly($contact,$need);
             }
         }
         return [$data, $friend, $group];

@@ -52,19 +52,29 @@ class Message
      * @param $fromId
      * @param $targetId
      * @param null $messageId
+     * @param int $action 0:id前记录 1:id后的记录 2:id前后的记录
      * @return mixed
      */
-    public static function getUserMessage($fromId,$targetId, $messageId = null)
+    public static function getUserMessage($fromId,$targetId, $messageId = null,$action = 0)
     {
         if(!$messageId){
-            $messageId = null;
+            $messageId = null;//如果为null，则会创建一个最新的objectId,相当于获取最新的记录
         }
         $idList = [trim($fromId),trim($targetId)];
         sort($idList);
         $id = implode('_',$idList);
         $coll = sprintf("users.message_%s", $id);
         $mongodb = app()->get(Mongodb::class);
-        $result = $mongodb->find(['_id' => ['$lt' => new ObjectId($messageId)]], $coll);
+        if($action == 0){
+            $result = $mongodb->find(['_id' => ['$lt' => new ObjectId($messageId)]], $coll);
+        }else if($action == 1){
+            $result = $mongodb->find(['_id' => ['$gt' => new ObjectId($messageId)]], $coll);
+        }else if($action == 2){
+            $pre = $mongodb->find(['_id' => ['$lt' => new ObjectId($messageId)]], $coll);
+            var_dump(['_id' => ['$lt' => new ObjectId($messageId)]]);
+            $next = $mongodb->find(['_id' => ['$gte' => new ObjectId($messageId)]], $coll);
+            $result = array_merge($pre, $next);
+        }
         foreach($result as &$row){
             $row = self::formatMessage($row, $fromId,'private');
         }
@@ -77,16 +87,30 @@ class Message
      * @param $fromId
      * @param $targetId
      * @param null $messageId
+     * @param int $action
      * @return mixed
      */
-    public static function getGroupMessage($fromId,$targetId, $messageId = null)
+    public static function getGroupMessage($fromId,$targetId, $messageId = null, $action=0)
     {
         if(!$messageId){
             $messageId = null;
         }
         $coll = sprintf("groups.group_%s", $targetId);
         $mongodb = app()->get(Mongodb::class);
-        $result = $mongodb->find(['_id' => ['$lt' => new ObjectId($messageId)]], $coll);
+
+        if($action == 0){
+            $result = $mongodb->find(['_id' => ['$lt' => new ObjectId($messageId)]], $coll);
+        }else if($action == 1){
+            var_dump('00000000000000000000000');
+            echo json_encode(['_id' => ['$gt' => new ObjectId($messageId)]]);
+            $result = $mongodb->find(['_id' => ['$gt' => new ObjectId($messageId)]], $coll);
+        }else if($action == 2){
+            $pre = $mongodb->find(['_id' => ['$lt' => new ObjectId($messageId)]], $coll);
+            var_dump(['_id' => ['$lt' => new ObjectId($messageId)]]);
+            $next = $mongodb->find(['_id' => ['$gte' => new ObjectId($messageId)]], $coll);
+            $result = array_merge($pre, $next);
+        }
+
         foreach($result as &$row){
             $row = self::formatMessage($row, $fromId,'group');
         }
