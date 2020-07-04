@@ -16,6 +16,7 @@ class Mongodb
 {
 
     protected $manager;
+    protected $application;
 
     /**
      * @return Manager
@@ -23,7 +24,9 @@ class Mongodb
      */
     public function __construct()
     {
-        $this->manager = new Manager("mongodb://192.168.75.1:27017");
+        $this->application = app();
+
+        $this->manager = new Manager($this->application->getConfig('mongodb.uri'));
         return $this->manager;
     }
 
