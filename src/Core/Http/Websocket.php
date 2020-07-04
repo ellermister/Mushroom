@@ -127,9 +127,11 @@ class Websocket
                 } catch (\Throwable $throwable) {
                     $responseObject->setCode(500);
                     $content = $throwable->getMessage();
+                    $content .= PHP_EOL.$throwable->getTraceAsString();
                 } catch (\Exception $exception) {
                     $responseObject->setCode(500);
                     $content = $exception->getMessage();
+                    $content .= PHP_EOL.$exception->getTraceAsString();
                 }
             }
 
