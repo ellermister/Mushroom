@@ -41,6 +41,7 @@ class RecentContact
         }
         $recent = [];
         foreach($result->contacts as $row){
+            if(!isset($row->read_id)) $row->read_id = null;
             if($row->contact_type == 'friend'){
                 if($contact = self::arrayGetItem($friend,['id' => $row->id])){
                     // 获取这个联系人最新滚动数据
