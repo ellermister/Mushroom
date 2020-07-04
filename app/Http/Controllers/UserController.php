@@ -74,7 +74,6 @@ class UserController
     {
         $username = $request->input('username');
         $password = $request->input('password');
-        echo bcrypt('123123');
         if($user = User::loginUser($username, $password)){
             return js_message('ok',200, $user);
         }
@@ -118,6 +117,7 @@ class UserController
                 $item['unread'] = 0;
                 $item['scroll_top'] = -1;
                 $item['read_id'] = "";
+                $item['last_id'] = "";
                 $recent[] = $item;
             }
             foreach($friends as $item){
@@ -127,17 +127,20 @@ class UserController
                 $item['unread'] = 0;
                 $item['scroll_top'] = -1;
                 $item['read_id'] = "";
+                $item['last_id'] = "";
                 $recent[] = $item;
             }
             return js_message('ok',200, $recent);
         }
         return js_message('token error',401);
     }
+
     /**
      * 获取最近联系人（联系人、群组）
      *
      * @param Request $request
      * @return false|string
+     * @throws \MongoDB\Driver\Exception\Exception
      * @throws \Mushroom\Core\Database\DbException
      */
     public function getRecentContact(Request $request)
@@ -329,6 +332,49 @@ class UserController
         }
         return js_message('update fail!',500);
     }
+
+    /**
+     * 获取群组成员列表
+     *
+     * @param Request $request
+     * @return false|string
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public function getGroupMembers(Request $request,Redis $redis)
+    {
+        $token = $request->input('token');
+        $groupId = $request->input('group_id');
+        if(!$user = User::getUserWithToken($token)){
+            return js_message('user not found!',404);
+        }
+        $members = Group::getGroupMembersPage($groupId);
+        $id = [];
+        foreach($members['list'] as $member){
+            $id[] = $member['user_id'];
+        }
+
+        $userList = User::getUserBasicProfileMultiple($id);
+        $userDate = $redis->hmget('online_date',$id);
+        foreach($userList as &$user){
+
+
+            $lastAtText = 'last seen a long time ago';
+            if($user['last_at'] > 0){
+                $lastAtText = date('Y-m-d H:i', $user['last_at']);
+            }
+            $userIndex = array_search($user['id'], $id);
+            if($userIndex !== false){
+                $lastAt = isset($userDate[$userIndex])? $userDate[$userIndex]: 0;
+                if($lastAt>0){
+                    $lastAtText = 'online';
+                }
+            }
+            $user['last_at_text'] = $lastAtText;
+        }
+        $members['list'] = $userList;
+        return js_message('ok',200, $members);
+    }
+
 
 
     /**

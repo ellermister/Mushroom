@@ -71,7 +71,6 @@ class Message
             $result = $mongodb->find(['_id' => ['$gt' => new ObjectId($messageId)]], $coll);
         }else if($action == 2){
             $pre = $mongodb->find(['_id' => ['$lt' => new ObjectId($messageId)]], $coll);
-            var_dump(['_id' => ['$lt' => new ObjectId($messageId)]]);
             $next = $mongodb->find(['_id' => ['$gte' => new ObjectId($messageId)]], $coll);
             $result = array_merge($pre, $next);
         }
@@ -101,12 +100,9 @@ class Message
         if($action == 0){
             $result = $mongodb->find(['_id' => ['$lt' => new ObjectId($messageId)]], $coll);
         }else if($action == 1){
-            var_dump('00000000000000000000000');
-            echo json_encode(['_id' => ['$gt' => new ObjectId($messageId)]]);
             $result = $mongodb->find(['_id' => ['$gt' => new ObjectId($messageId)]], $coll);
         }else if($action == 2){
             $pre = $mongodb->find(['_id' => ['$lt' => new ObjectId($messageId)]], $coll);
-            var_dump(['_id' => ['$lt' => new ObjectId($messageId)]]);
             $next = $mongodb->find(['_id' => ['$gte' => new ObjectId($messageId)]], $coll);
             $result = array_merge($pre, $next);
         }

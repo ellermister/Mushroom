@@ -5,6 +5,7 @@ return [
     '/ip/country' => 'IpController@getAreaCode',
 //    '/user/friend' => 'UserController@getFriend',
     '/group/info' => 'UserController@getGroupInfo',
+    '/group/members' => 'UserController@getGroupMembers',
     '/group/join' => 'UserController@joinGroupPage',
     '/user/test' => 'UserController@test',
 

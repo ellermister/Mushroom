@@ -80,6 +80,18 @@ class Group extends Model
         return self::table('users_groups')->where('group_id', $groupId)->get();
     }
 
+    /**
+     * 获取群组成员分页
+     *
+     * @param $groupId
+     * @return array|bool
+     * @throws \Mushroom\Core\Database\DbException
+     */
+    public static function getGroupMembersPage($groupId)
+    {
+        return self::table('users_groups')->where('group_id', $groupId)->paginate();
+    }
+
     public static function getDefaultAvatar()
     {
         return "https://pic.sucaibar.com/pic/201307/18/6cd5a2822d.png";

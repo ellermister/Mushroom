@@ -104,7 +104,14 @@ class Response
      */
     public function terminate()
     {
-        $this->swooleResponse->header("Content-Type", $this->contentType);
+        try{
+            $this->swooleResponse->header("Content-Type", $this->contentType);
+        }catch (\Throwable $throwable){
+            var_dump($this->swooleResponse);
+            var_dump($throwable->getMessage());
+            var_dump($throwable->getTrace());
+        }
+
         foreach ($this->headers as $headerName => $headerValue) {
             $this->swooleResponse->header($headerName, $headerValue);
         }

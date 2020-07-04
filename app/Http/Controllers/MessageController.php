@@ -145,17 +145,6 @@ class MessageController
                     }
                     // 发送群组消息
                 }
-            } else if ($message->message == 'FRIEND_LIST') {
-                $user = $userTable->get($request->fd);
-                return ws_message('FRIEND_LIST', 200, $this->friendList($user['user_id']));
-            } else if ($message->message == 'CREATE_GROUP'){
-                $user = $userTable->get($request->fd);
-                $userProfile = $this->getUser($user['id']);
-                if($groupId = $this->createGroup($messageData, $userProfile)){
-                    $groupInfo = $this->getGroup($groupId);
-                    return ws_message('CREATE_GROUP_RESULT',200, $groupInfo);
-                }
-                return ws_message('CREATE_GROUP_RESULT',500,'创建失败');
             }
         }
         return ws_message("无效操作", 400);
@@ -180,167 +169,28 @@ class MessageController
         return "罗伯特";
     }
 
-    /**
-     * 显示好友和群组
-     *
-     * @return array
-     */
-    protected function friendList($userId)
-    {
-        $onlineUserId = $this->redis->hkeys('online');
-        $count = $this->redis->hlen('users');
-        $users = $this->redis->hmget('users', $onlineUserId);
-        $friend = [];
-        if(is_array($users)){
-            foreach ($users as $id => $user) {
-                $friend[$id] = $this->filterSecretUserField(unserialize($user));
-                $friend[$id]['last_message'] = "";
-                $friend[$id]['contact_type'] = "user";
-            }
-        }
-
-
-        $groupIdList = $this->redis->smembers('users_union_group:'.$userId);
-        if(is_array($groupIdList)){
-            foreach($groupIdList as $groupId){
-                $buffer = $this->getGroup($groupId);
-                $buffer['contact_type'] = 'group';
-                $friend[] = $buffer;
-            }
-        }
-
-        return $friend;
-    }
-
-    protected function registerUser($user)
-    {
-        return $this->redis->hset('users', $user['id'], serialize($user));
-    }
-
-    protected function addUserToChannel()
-    {
-
-    }
-
 
     protected function flushOnline()
     {
         $this->redis->del('online');
+        $this->redis->del('online_date');
     }
 
     protected function setUserOnline($userId, $fd)
     {
         $this->redis->hset('online', $userId, $fd);
+        $this->redis->hset('online_date', $userId, time());
     }
 
     protected function setUserOffline($userId)
     {
         $this->redis->hdel('online', $userId);
+        $this->redis->hdel('online_date', $userId);
     }
 
     protected function getUserOnlineFd($userId)
     {
         return $this->redis->hget('online', $userId);
-    }
-
-
-    protected function getNewUserId()
-    {
-        $newId = $this->redis->get('users_new_id') ?? 1;
-        while ($this->redis->hexists('users', $newId)) {
-            $newId++;
-        }
-        $this->redis->set('users_new_id', $newId + 1);
-        return $newId;
-    }
-
-    protected function hasUser($uid)
-    {
-        return $this->redis->hexists('users', $uid);
-    }
-
-    protected function getUser($uid)
-    {
-        return unserialize($this->redis->hget('users', $uid)) ?? [];
-    }
-
-    protected function updateUser($user)
-    {
-        return $this->redis->hset('users', $user['id'], serialize($user));
-    }
-
-    /**
-     * 创建群组
-     *
-     * @param $data
-     * @param $creator
-     * @return bool|int
-     */
-    protected function createGroup($data,$creator)
-    {
-        $creator = $this->filterSecretUserField($creator);
-        $groupId = rand(100000, 999999);
-        while ($this->redis->hexists('groups', $groupId)) {
-            $groupId = rand(100000, 999999);
-        }
-        $data['creator'] = $creator['id'];
-        $data['group_id'] = $groupId;
-        // 创建群组
-        if($this->redis->hset('groups', $groupId, serialize($data))){
-            // 创建群成员
-            $creatorId = $creator['id'];
-            $this->redis->hset('groups_users:'.$groupId, $creatorId, serialize($creator));
-
-            // 关联到创建者
-            $this->redis->sadd('users_union_group:'.$creatorId, $groupId);
-            return $groupId;
-        }
-        return false;
-    }
-
-    /**
-     * 获取群组信息
-     *
-     * @param $groupId
-     * @return mixed
-     */
-    protected function getGroup($groupId)
-    {
-        $group = unserialize($this->redis->hget('groups', $groupId));
-        // SMEMBERS
-        $users = $this->redis->hvals('groups_users:'.$groupId);
-        foreach($users as &$user){
-            $user = unserialize($user);
-        }
-        $group['users'] = $users;
-
-        // 补全群组信息
-        if(empty($group['group_name'])){
-            $group['group_name'] = '未命名'.$group['group_id'];
-        }
-
-        return $group;
-    }
-
-    /**
-     * 过滤用户隐私字段
-     *
-     * @param $user
-     * @return mixed
-     */
-    protected function filterSecretUserField($user){
-        unset($user['password']);
-        return $user;
-    }
-    /**
-     * 过滤群组隐私字段
-     *
-     * @param $group
-     * @return mixed
-     */
-    protected function filterSecretGroupField($group){
-        unset($group['password']);
-        return $group;
     }
 
     /**
@@ -353,10 +203,5 @@ class MessageController
     {
         return $this->redis->hmget('online',$userId);
     }
-
-
-
-
-
 
 }

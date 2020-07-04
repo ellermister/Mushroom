@@ -71,7 +71,7 @@ class Mongodb
      * @param $filter
      * @param $target
      * @param array $_options
-     * @return \MongoDB\Driver\Cursor
+     * @return array
      * @throws \MongoDB\Driver\Exception\Exception
      */
     public function find($filter,$target,$_options = [])
@@ -86,5 +86,24 @@ class Mongodb
         $cursor = $this->manager->executeQuery($target, $query);
         return $cursor->toArray();
     }
+
+    /**
+     * 统计条件总数
+     *
+     * @param $filter
+     * @param $target
+     * @return mixed
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public function count($filter, $target)
+    {
+        list($db, $coll) = explode('.', $target);
+        $command = new \MongoDB\Driver\Command(["count" => $coll, "query" => $filter]);
+        $result = $this->manager->executeCommand($db, $command);
+        $res = current($result->toArray());
+        $count = $res->n;
+        return $count;
+    }
+
 
 }

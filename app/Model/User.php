@@ -114,7 +114,6 @@ class User extends Model
     public static function loginUser($email, $password)
     {
         $user = self::where('email', $email)->find();
-        var_dump($password);
         if ($user && password_verify($password, $user['password'])) {
             unset($user['password']);
             $user['token'] = self::createPasswordToken($email, $password);
@@ -178,7 +177,6 @@ class User extends Model
     public static function getProfile($email, $password)
     {
         $user = self::where('email', $email)->find();
-        var_dump($password);
         if ($user && password_verify($password, $user['password'])) {
             unset($user['password']);
             return $user;
@@ -200,6 +198,24 @@ class User extends Model
             $user['avatar'] = "https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=2519824424,1132423651&fm=26&gp=0.jpg";
         }
         return $user;
+    }
+
+    /**
+     * 获取用户基础资料
+     * 一般用户聊天记录消息中
+     *
+     * @param $id
+     * @return mixed
+     */
+    public static function getUserBasicProfileMultiple(array $id)
+    {
+        $users = self::column(['id', 'username', 'discriminator', 'avatar','last_at'])->where('id','in', $id)->get();
+        foreach($users as &$user){
+            if (isset($user['avatar']) && empty($user['avatar'])) {
+                $user['avatar'] = "https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/u=2519824424,1132423651&fm=26&gp=0.jpg";
+            }
+        }
+        return $users;
     }
 
     /**

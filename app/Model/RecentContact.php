@@ -9,6 +9,7 @@
 namespace App\Model;
 
 
+use MongoDB\BSON\ObjectId;
 use Mushroom\Core\Mongodb;
 
 class RecentContact
@@ -21,6 +22,7 @@ class RecentContact
      * @param $userId
      * @return mixed
      * @throws \Mushroom\Core\Database\DbException
+     * @throws \MongoDB\Driver\Exception\Exception
      */
     public static function getRecentContact($userId)
     {
@@ -42,21 +44,30 @@ class RecentContact
             if($row->contact_type == 'friend'){
                 if($contact = self::arrayGetItem($friend,['id' => $row->id])){
                     // 获取这个联系人最新滚动数据
-                    $latestScroll = self::arrayGetItem($result->contacts,['id' => $row->id,'contact_type' =>$row->contact_type]);
+                    $latestScroll = self::arrayGetItem($result->contacts,['id' => $row->id,'contact_type' =>$row->contact_type]) ?? [];
                     gettype($latestScroll) == 'object' && $latestScroll = get_object_vars($latestScroll);
+                    $lastMessage = self::getFriendLastText($userId, $row->id);
+                    if($lastMessage) $latestScroll['last_message'] = $lastMessage->text;
+                    if($lastMessage) $latestScroll['last_id'] = $lastMessage->_id->__toString();
+                    $latestScroll['unread'] = self::getFriendUnreadCount($userId,$row->id, $row->read_id);
                     $recent [] = array_merge((array) $row, self::formatContact($contact, $latestScroll ?? []));
                 }
             }
             if($row->contact_type == 'group'){
+
                 if($contact = self::arrayGetItem($group,['id' => $row->id])){
                     // 获取这个联系人最新滚动数据
-                    $latestScroll = self::arrayGetItem($result->contacts,['id' => $row->id,'contact_type' =>$row->contact_type]);
+                    $latestScroll = self::arrayGetItem($result->contacts,['id' => $row->id,'contact_type' =>$row->contact_type]) ?? [];
                     gettype($latestScroll) == 'object' && $latestScroll = get_object_vars($latestScroll);
-                    var_dump($latestScroll);
+                    $lastMessage = self::getGroupLastText($row->id);
+                    if($lastMessage) $latestScroll['last_message'] = $lastMessage->text;
+                    if($lastMessage) $latestScroll['last_id'] = $lastMessage->_id->__toString();
+                    $latestScroll['unread'] = self::getGroupUnreadCount($row->id, $row->read_id);
                     $recent [] = array_merge((array) $row, self::formatContact($contact, $latestScroll ?? []));
                 }
             }
         }
+
         return $recent;
     }
 
@@ -100,8 +111,6 @@ class RecentContact
         $contact['read_id'] = "";
         // 合并缓存中的最近联系人数据到联系人中给用户
         $contact = array_merge($contact, $lastRecord);
-        echo '------------------'.PHP_EOL;
-        var_dump($contact);
         return $contact;
     }
 
@@ -175,6 +184,84 @@ class RecentContact
         return $data;
     }
 
+    /**
+     * 获取群组消息ID后未读数量
+     *
+     * @param $groupId
+     * @param $messageId
+     * @return int
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public static function getGroupUnreadCount($groupId, $messageId)
+    {
+        $mongodb = app()->get(Mongodb::class);
+        $coll = sprintf('groups.group_%s', $groupId);
+        /** @var Mongodb $mongodb */
+        return $mongodb->count(['_id' => ['$gt' => new ObjectId($messageId)]], $coll);
+    }
 
+    /**
+     * 获取好友消息ID后未读数量
+     *
+     * @param $userId
+     * @param $friendId
+     * @param $messageId
+     * @return int
+     */
+    public static function getFriendUnreadCount($userId, $friendId, $messageId)
+    {
+        $idList = [trim($userId),trim($friendId)];
+        sort($idList);
+        $id = implode('_',$idList);
+        $coll = sprintf("users.message_%s", $id);
+        $mongodb = app()->get(Mongodb::class);
+        return $mongodb->count(['_id' => ['$gt' => new ObjectId($messageId)]], $coll);
+    }
+
+    /**
+     * 获取群组最后一条消息文本
+     *
+     * @param $groupId
+     * @return array|false
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public static function getGroupLastText($groupId)
+    {
+        $mongodb = app()->get(Mongodb::class);
+        $coll = sprintf('groups.group_%s', $groupId);
+        /** @var Mongodb $mongodb */
+        return current($mongodb->find([], $coll,
+            [
+                'limit' => 1,
+                'sort'  => ['_id' => -1],
+                'projection' => ['text' => 1]
+            ]
+        ));
+    }
+
+    /**
+     * 获取好友最后一条消息文本
+     *
+     * @param $userId
+     * @param $friendId
+     * @return array|false
+     * @throws \MongoDB\Driver\Exception\Exception
+     */
+    public static function getFriendLastText($userId, $friendId)
+    {
+        $mongodb = app()->get(Mongodb::class);
+        $idList = [trim($userId),trim($friendId)];
+        sort($idList);
+        $id = implode('_',$idList);
+        $coll = sprintf("users.message_%s", $id);
+        /** @var Mongodb $mongodb */
+        return current($mongodb->find([], $coll,
+            [
+                'limit' => 1,
+                'sort'  => ['_id' => -1],
+                'projection' => ['text' => 1]
+            ]
+        ));
+    }
 
 }
